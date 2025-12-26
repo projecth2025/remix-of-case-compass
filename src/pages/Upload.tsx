@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 const Upload = () => {
   const navigate = useNavigate();
-  const { state, addUploadedFile } = useApp();
+  const { currentPatient, addUploadedFile } = useApp();
 
   // Note: Files are already cleared in setCurrentPatient when starting a new case
   // No need to clear here - it could interfere with the state
@@ -24,7 +24,7 @@ const Upload = () => {
     navigate('/home');
   };
 
-  if (!state.currentPatient) {
+  if (!currentPatient) {
     navigate('/home');
     return null;
   }

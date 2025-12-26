@@ -13,7 +13,7 @@ import { toast } from 'sonner';
  */
 const UploadReview = () => {
   const navigate = useNavigate();
-  const { state, addUploadedFile, removeUploadedFile, updateFileCategory, updateFileExtractedData, clearUploadedFiles, updateFileName } = useApp();
+  const { currentPatient, uploadedFiles, addUploadedFile, removeUploadedFile, updateFileCategory, updateFileExtractedData, clearUploadedFiles, updateFileName } = useApp();
   const [showConfirmRemove, setShowConfirmRemove] = useState(false);
   const [editingFileId, setEditingFileId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,12 +61,12 @@ const UploadReview = () => {
   };
 
   const handleNext = () => {
-    if (state.uploadedFiles.length === 0) {
+    if (uploadedFiles.length === 0) {
       toast.error('Please upload at least one file');
       return;
     }
 
-    state.uploadedFiles.forEach(file => {
+    uploadedFiles.forEach(file => {
       const extractedData = generateMockExtractedData(file.fileCategory);
       updateFileExtractedData(file.id, extractedData);
     });
@@ -79,7 +79,7 @@ const UploadReview = () => {
     navigate('/upload');
   };
 
-  if (!state.currentPatient) {
+  if (!currentPatient) {
     navigate('/home');
     return null;
   }
@@ -104,7 +104,7 @@ const UploadReview = () => {
           {/* Header row - fixed */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 flex-shrink-0">
             <h2 className="text-lg font-semibold text-foreground">
-              Uploaded Files ({state.uploadedFiles.length})
+              Uploaded Files ({uploadedFiles.length})
             </h2>
             <div className="flex items-center gap-2">
               <button
@@ -117,7 +117,7 @@ const UploadReview = () => {
               </button>
               <button
                 onClick={() => setShowConfirmRemove(true)}
-                disabled={state.uploadedFiles.length === 0}
+                disabled={uploadedFiles.length === 0}
                 className="vmtb-btn-outline flex items-center gap-2 px-3 py-1.5 text-sm text-destructive border-destructive hover:bg-destructive/10 disabled:opacity-50"
                 aria-label="Remove All"
               >
@@ -129,12 +129,12 @@ const UploadReview = () => {
 
           {/* File List - scrollable only this area */}
           <div className="flex-1 overflow-y-auto hide-scrollbar space-y-2">
-            {state.uploadedFiles.length === 0 ? (
+            {uploadedFiles.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No files uploaded yet. Use the button above to upload files.
               </div>
             ) : (
-              state.uploadedFiles.map(file => (
+              uploadedFiles.map(file => (
                 <FileCard
                   key={file.id}
                   file={file}
@@ -164,7 +164,7 @@ const UploadReview = () => {
           </button>
           <button
             onClick={handleNext}
-            disabled={state.uploadedFiles.length === 0}
+            disabled={uploadedFiles.length === 0}
             className="vmtb-btn-primary px-6 py-1.5 text-sm"
             aria-label="Next"
           >
