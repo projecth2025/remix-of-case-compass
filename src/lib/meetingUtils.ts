@@ -33,37 +33,16 @@ export const formatMeetingDateShort = (dateStr: string): string => {
 
 /**
  * Check if Join button should be enabled
- * For recurring meetings: check if current day matches and time is within range
- * For one-time meetings: 5 minutes before meeting, up to 60 min after start
+ * Meetings can be joined anytime while they're scheduled or in progress (not ended/cancelled)
  */
 export const isJoinEnabled = (meeting: Meeting): boolean => {
-  const now = new Date();
-  
-  // For recurring meetings, check if today is one of the repeat days and time is appropriate
-  if (meeting.scheduleType === 'custom' && meeting.repeatDays && meeting.repeatDays.length > 0) {
-    const currentDayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    
-    if (!meeting.repeatDays.includes(currentDayOfWeek)) {
-      return false; // Not a meeting day
-    }
-    
-    // Check if current time is within the meeting window
-    const [hours, minutes] = meeting.scheduledTime.split(':').map(Number);
-    const meetingToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
-    const minutesUntilMeeting = differenceInMinutes(meetingToday, now);
-    return minutesUntilMeeting <= 5 && minutesUntilMeeting >= -60;
+  // If meeting is ended or cancelled, can't join
+  if (meeting.status === 'ended' || meeting.status === 'cancelled') {
+    return false;
   }
   
-  // For one-time meetings
-  const [year, month, day] = meeting.scheduledDate.split('-').map(Number);
-  const [hours, minutes] = meeting.scheduledTime.split(':').map(Number);
-  
-  // Create date in local timezone
-  const meetingDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
-  
-  const minutesUntilMeeting = differenceInMinutes(meetingDateTime, now);
-  // Enable 5 min before, disable 60 min after start
-  return minutesUntilMeeting <= 5 && minutesUntilMeeting >= -60;
+  // Meeting is joinable if it's scheduled or in progress
+  return true;
 };
 
 /**
