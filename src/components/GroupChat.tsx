@@ -39,7 +39,7 @@ const GroupChat = ({ caseId, messages, onSendMessage }: GroupChatProps) => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -136,7 +136,7 @@ const GroupChat = ({ caseId, messages, onSendMessage }: GroupChatProps) => {
             type="text"
             value={message}
             onChange={e => setMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyDown}
             placeholder={isAnonymous ? "Type an anonymous message..." : "Type a message to the group..."}
             className="flex-1 vmtb-input"
             aria-label="Group message input"

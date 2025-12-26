@@ -5,7 +5,7 @@ import Header from '@/components/Header';
 import TabBar from '@/components/TabBar';
 import ZoomablePreview from '@/components/ZoomablePreview';
 import ExpertList from '@/components/ExpertList';
-import ChatBox from '@/components/ChatBox';
+import PrivateChatBox from '@/components/PrivateChatBox';
 import GroupChat from '@/components/GroupChat';
 import { useSupabaseData, FullCase } from '@/hooks/useSupabaseData';
 import { useGroupMessages } from '@/hooks/useGroupMessages';
@@ -261,7 +261,7 @@ const CaseView = () => {
                       onSendMessage={handleSendGroupMessage}
                     />
                   ) : selectedExpert ? (
-                    <ChatBox expert={selectedExpert} caseId={caseData.id} />
+                    <PrivateChatBox expert={selectedExpert} caseId={caseData.id} />
                   ) : (
                     <div className="h-full flex items-center justify-center text-muted-foreground">
                       Select an expert to start a private chat
