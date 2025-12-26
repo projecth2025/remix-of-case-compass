@@ -29,7 +29,7 @@ const MTBDetail = () => {
   const { user } = useAuth();
   
   // Hooks
-  const { mtbs, getMTBMembers, getMTBCases, addCasesToMTB, removeCaseFromMTB, removeMemberFromMTB } = useMTBs();
+  const { mtbs, loading: mtbsLoading, getMTBMembers, getMTBCases, addCasesToMTB, removeCaseFromMTB, removeMemberFromMTB } = useMTBs();
   const { sendInvitations } = useInvitations();
   const { createMeeting, deleteMeeting, joinMeeting, getMeetingsForMTB } = useMeetings();
   
@@ -72,6 +72,18 @@ const MTBDetail = () => {
       setMtbMeetings(getMeetingsForMTB(id));
     }
   }, [id, getMTBMembers, getMTBCases, getMeetingsForMTB]);
+
+  // Show loading state while MTBs are being fetched
+  if (mtbsLoading) {
+    return (
+      <div className="min-h-screen bg-muted flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   // Defensive checks - after all hooks
   if (!id) {
