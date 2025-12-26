@@ -35,6 +35,7 @@ export interface MTBCase {
   cancerType: string | null;
   patientName: string;
   addedAt: string;
+  addedBy: string;
 }
 
 export function useMTBs() {
@@ -351,6 +352,7 @@ export function useMTBs() {
         cancerType: caseMap[c.case_id]?.cancer_type,
         patientName: patientMap[c.case_id] || '',
         addedAt: c.added_at,
+        addedBy: c.added_by,
       }));
     } catch (err) {
       console.error('Error fetching MTB cases:', err);
