@@ -54,10 +54,7 @@ export function useMTBs() {
       // Fetch MTBs where user is owner
       const { data: ownedMtbs, error: ownedError } = await supabase
         .from('mtbs')
-        .select(`
-          *,
-          owner:profiles!mtbs_owner_id_fkey(name)
-        `)
+        .select('*')
         .eq('owner_id', user.id);
 
       if (ownedError) throw ownedError;
@@ -66,14 +63,27 @@ export function useMTBs() {
       const { data: memberMtbs, error: memberError } = await supabase
         .from('mtb_members')
         .select(`
-          mtb:mtbs(
-            *,
-            owner:profiles!mtbs_owner_id_fkey(name)
-          )
+          mtb:mtbs(*)
         `)
         .eq('user_id', user.id);
 
       if (memberError) throw memberError;
+
+      // Fetch owner profiles separately
+      const ownerIds = [
+        ...(ownedMtbs || []).map(m => m.owner_id),
+        ...(memberMtbs || []).map(m => m.mtb?.owner_id).filter(Boolean)
+      ];
+
+      const { data: ownerProfiles } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', ownerIds);
+
+      const ownerMap: Record<string, string> = {};
+      (ownerProfiles || []).forEach(p => {
+        ownerMap[p.id] = p.name;
+      });
 
       // Get member counts for all MTBs
       const allMtbIds = [
@@ -112,7 +122,7 @@ export function useMTBs() {
           description: m.description,
           dpImage: m.dp_image,
           ownerId: m.owner_id,
-          ownerName: (m.owner as any)?.name || 'Unknown',
+          ownerName: ownerMap[m.owner_id] || 'Unknown',
           isOwner: true,
           expertsCount: memberCountMap[m.id] || 0,
           casesCount: caseCountMap[m.id] || 0,
@@ -128,7 +138,7 @@ export function useMTBs() {
             description: m.mtb.description,
             dpImage: m.mtb.dp_image,
             ownerId: m.mtb.owner_id,
-            ownerName: (m.mtb.owner as any)?.name || 'Unknown',
+            ownerName: ownerMap[m.mtb.owner_id] || 'Unknown',
             isOwner: m.mtb.owner_id === user.id,
             expertsCount: memberCountMap[m.mtb.id] || 0,
             casesCount: caseCountMap[m.mtb.id] || 0,
