@@ -31,7 +31,6 @@ const CaseView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { loadCaseForEditing, loading } = useSupabaseData();
-  const { sendMessage: sendGroupChatMessage } = useGroupMessages(id || '');
   const [activeTab, setActiveTab] = useState('profile');
   const [selectedReport, setSelectedReport] = useState<UploadedFile | null>(null);
   const [selectedExpert, setSelectedExpert] = useState<Expert | null>(null);
@@ -39,6 +38,9 @@ const CaseView = () => {
   const [caseData, setCaseData] = useState<FullCase | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Move useGroupMessages to the top level - hooks must be called unconditionally
+  const { messages: groupMessages, sendMessage: sendGroupMessage } = useGroupMessages(id || '');
 
   // Load case data from database - always use loadCaseForEditing for full file data
   useEffect(() => {
@@ -93,9 +95,6 @@ const CaseView = () => {
   if (!caseData) {
     return null;
   }
-
-  // Use the group messages hook
-  const { messages: groupMessages, sendMessage: sendGroupMessage } = useGroupMessages(caseData.id);
 
   const handleSelectExpert = (expert: Expert) => {
     setSelectedExpert(expert);
