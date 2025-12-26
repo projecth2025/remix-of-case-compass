@@ -245,7 +245,7 @@ const MTBDetail = () => {
               {filteredCases.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground">
                   <p>No cases have been added to this MTB yet.</p>
-                  {isOwner && <p className="text-sm mt-2">Use the sidebar to add cases.</p>}
+                  <p className="text-sm mt-2">Use the sidebar to add cases.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -329,11 +329,11 @@ const MTBDetail = () => {
                 </div>
               </div>
 
-              {/* Non-owner disclaimer */}
+              {/* Non-owner disclaimer for member management */}
               {!isOwner && (
                 <div className="mb-6 p-4 bg-muted/50 border border-border rounded-lg">
                   <p className="text-sm text-muted-foreground">
-                    Only the MTB owner can add or remove experts.
+                    Only the MTB owner can add or remove members.
                   </p>
                 </div>
               )}
@@ -414,7 +414,7 @@ const MTBDetail = () => {
                 <div className="py-12 text-center text-muted-foreground">
                   <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>No meetings scheduled.</p>
-                  {isOwner && <p className="text-sm mt-2">Use the sidebar to schedule a meeting.</p>}
+                  <p className="text-sm mt-2">Use the sidebar to schedule a meeting.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -463,7 +463,7 @@ const MTBDetail = () => {
                             <Video className="w-4 h-4" />
                             {meeting.status === 'in_progress' ? 'Rejoin' : 'Join'}
                           </Button>
-                          {isOwner && (
+                          {(isOwner || meeting.createdBy === user?.id) && (
                             <Button
                               size="sm"
                               variant="outline"
