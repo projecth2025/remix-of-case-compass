@@ -40,23 +40,23 @@ export const isJoinEnabled = (meeting: Meeting): boolean => {
   const now = new Date();
   
   // For recurring meetings, check if today is one of the repeat days and time is appropriate
-  if (meeting.schedule_type === 'custom' && meeting.repeat_days && meeting.repeat_days.length > 0) {
+  if (meeting.scheduleType === 'custom' && meeting.repeatDays && meeting.repeatDays.length > 0) {
     const currentDayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
     
-    if (!meeting.repeat_days.includes(currentDayOfWeek)) {
+    if (!meeting.repeatDays.includes(currentDayOfWeek)) {
       return false; // Not a meeting day
     }
     
     // Check if current time is within the meeting window
-    const [hours, minutes] = meeting.scheduled_time.split(':').map(Number);
+    const [hours, minutes] = meeting.scheduledTime.split(':').map(Number);
     const meetingToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
     const minutesUntilMeeting = differenceInMinutes(meetingToday, now);
     return minutesUntilMeeting <= 5 && minutesUntilMeeting >= -60;
   }
   
   // For one-time meetings
-  const [year, month, day] = meeting.scheduled_date.split('-').map(Number);
-  const [hours, minutes] = meeting.scheduled_time.split(':').map(Number);
+  const [year, month, day] = meeting.scheduledDate.split('-').map(Number);
+  const [hours, minutes] = meeting.scheduledTime.split(':').map(Number);
   
   // Create date in local timezone
   const meetingDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
@@ -89,8 +89,8 @@ export const parseLocalDate = (dateStr: string): Date => {
  * Get meeting datetime for sorting
  */
 export const getMeetingDateTime = (meeting: Meeting): Date => {
-  const [year, month, day] = meeting.scheduled_date.split('-').map(Number);
-  const [hours, minutes] = meeting.scheduled_time.split(':').map(Number);
+  const [year, month, day] = meeting.scheduledDate.split('-').map(Number);
+  const [hours, minutes] = meeting.scheduledTime.split(':').map(Number);
   return new Date(year, month - 1, day, hours, minutes, 0, 0);
 };
 
@@ -116,11 +116,11 @@ export const getUpcomingMeetingsSorted = (meetings: Meeting[]): Meeting[] => {
   return meetings
     .filter(m => {
       // Recurring meetings are always considered upcoming
-      if (m.schedule_type === 'custom' && m.repeat_days && m.repeat_days.length > 0) {
+      if (m.scheduleType === 'custom' && m.repeatDays && m.repeatDays.length > 0) {
         return true;
       }
       
-      const meetingDate = parseLocalDate(m.scheduled_date);
+      const meetingDate = parseLocalDate(m.scheduledDate);
       const meetingDateTime = getMeetingDateTime(m);
       // Include if meeting date is today or later, and meeting hasn't ended (60 min grace)
       const isUpcoming = isAfter(meetingDate, todayStart) || format(meetingDate, 'yyyy-MM-dd') === format(todayStart, 'yyyy-MM-dd');
@@ -129,9 +129,9 @@ export const getUpcomingMeetingsSorted = (meetings: Meeting[]): Meeting[] => {
       return isUpcoming && !hasEnded;
     })
     .sort((a, b) => {
-      // Put recurring meetings at the end (or sort by created_at)
-      const aIsRecurring = a.schedule_type === 'custom' && a.repeat_days && a.repeat_days.length > 0;
-      const bIsRecurring = b.schedule_type === 'custom' && b.repeat_days && b.repeat_days.length > 0;
+      // Put recurring meetings at the end (or sort by createdAt)
+      const aIsRecurring = a.scheduleType === 'custom' && a.repeatDays && a.repeatDays.length > 0;
+      const bIsRecurring = b.scheduleType === 'custom' && b.repeatDays && b.repeatDays.length > 0;
       
       // Non-recurring meetings sorted by datetime
       if (!aIsRecurring && !bIsRecurring) {
@@ -145,6 +145,6 @@ export const getUpcomingMeetingsSorted = (meetings: Meeting[]): Meeting[] => {
       if (!aIsRecurring && bIsRecurring) return -1;
       
       // Both recurring - sort by creation date
-      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
 };

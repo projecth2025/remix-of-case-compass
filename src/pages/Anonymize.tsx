@@ -38,18 +38,19 @@ const Anonymize = () => {
   const { fileIndex } = useParams();
   const navigate = useNavigate();
   const { 
-    state, 
+    uploadedFiles, 
+    isEditMode,
     updateAnonymizedImage, 
     updateAnonymizedPDFPages, 
     markFileAsEdited,
     markAnonymizedVisited,
     getMissingAnonymization,
   } = useApp();
-  const mode = state.isEditMode ? 'MODIFY' : 'CREATE';
+  const mode = isEditMode ? 'MODIFY' : 'CREATE';
   
   const currentIndex = parseInt(fileIndex || '0', 10);
-  const currentFile = state.uploadedFiles[currentIndex];
-  const totalFiles = state.uploadedFiles.length;
+  const currentFile = uploadedFiles[currentIndex];
+  const totalFiles = uploadedFiles.length;
   const isLastFile = currentIndex === totalFiles - 1;
   const isFirstFile = currentIndex === 0;
 

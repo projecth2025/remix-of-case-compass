@@ -79,10 +79,10 @@ const MeetingsModal = ({
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-medium text-foreground truncate">
-                            {meeting.mtb_name || 'MTB Meeting'}
+                        <h4 className="font-medium text-foreground truncate">
+                            {meeting.mtbName || 'MTB Meeting'}
                           </h4>
-                          {meeting.schedule_type === 'custom' && meeting.repeat_days && meeting.repeat_days.length > 0 && (
+                          {meeting.scheduleType === 'custom' && meeting.repeatDays && meeting.repeatDays.length > 0 && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                               <RefreshCw className="w-3 h-3" />
                               Recurring
@@ -91,21 +91,21 @@ const MeetingsModal = ({
                         </div>
                         
                         <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
-                          {meeting.schedule_type === 'custom' && meeting.repeat_days && meeting.repeat_days.length > 0 ? (
+                          {meeting.scheduleType === 'custom' && meeting.repeatDays && meeting.repeatDays.length > 0 ? (
                             // For recurring meetings, show the days instead of a single date
                             <div className="flex items-center gap-1.5">
                               <Calendar className="w-4 h-4 text-primary" />
-                              <span>Every {formatRepeatDays(meeting.repeat_days)}</span>
+                              <span>Every {formatRepeatDays(meeting.repeatDays)}</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1.5">
                               <Calendar className="w-4 h-4 text-primary" />
-                              <span>{formatMeetingDateDisplay(meeting.scheduled_date)}</span>
+                              <span>{formatMeetingDateDisplay(meeting.scheduledDate)}</span>
                             </div>
                           )}
                           <div className="flex items-center gap-1.5">
                             <Clock className="w-4 h-4 text-primary" />
-                            <span>{formatTime12Hour(meeting.scheduled_time)}</span>
+                            <span>{formatTime12Hour(meeting.scheduledTime)}</span>
                           </div>
                         </div>
                       </div>

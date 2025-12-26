@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Users } from 'lucide-react';
 import { ChatMessage } from '@/lib/storage';
-import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface GroupChatProps {
   caseId: string;
@@ -14,7 +14,7 @@ interface GroupChatProps {
  * Messages are labeled with generic participant names for privacy.
  */
 const GroupChat = ({ caseId, messages, onSendMessage }: GroupChatProps) => {
-  const { state } = useApp();
+  const { user } = useAuth();
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -38,9 +38,9 @@ const GroupChat = ({ caseId, messages, onSendMessage }: GroupChatProps) => {
 
   // Generate anonymous participant labels based on sender ID
   const getParticipantLabel = (senderId: string, index: number) => {
-    if (senderId === state.loggedInUser?.id) return 'You';
+    if (senderId === user?.id) return 'You';
     // Create consistent participant numbering based on sender ID
-    const senderIds = [...new Set(messages.map(m => m.senderId).filter(id => id !== state.loggedInUser?.id))];
+    const senderIds = [...new Set(messages.map(m => m.senderId).filter(id => id !== user?.id))];
     const participantIndex = senderIds.indexOf(senderId) + 1;
     return `Participant ${participantIndex}`;
   };
@@ -66,7 +66,7 @@ const GroupChat = ({ caseId, messages, onSendMessage }: GroupChatProps) => {
           </div>
         )}
         {messages.map((msg, index) => {
-          const isOwnMessage = msg.senderId === state.loggedInUser?.id;
+          const isOwnMessage = msg.senderId === user?.id;
           const participantLabel = getParticipantLabel(msg.senderId, index);
           
           return (

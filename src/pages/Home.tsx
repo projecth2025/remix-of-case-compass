@@ -202,13 +202,13 @@ const UpcomingMeetingCardContent = ({ meetings, onJoin, onShowMore }: { meetings
           <div className="flex items-start justify-between gap-4">
             <div>
               <h4 className="font-semibold text-foreground text-base mb-2">
-                {nearestMeeting.mtb_name || 'MTB Meeting'}
+                {nearestMeeting.mtbName || 'MTB Meeting'}
               </h4>
               <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                <span>{formatMeetingDateDisplay(nearestMeeting.scheduled_date)}</span>
+                <span>{formatMeetingDateDisplay(nearestMeeting.scheduledDate)}</span>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                <span>{formatTime12Hour(nearestMeeting.scheduled_time)}</span>
+                <span>{formatTime12Hour(nearestMeeting.scheduledTime)}</span>
               </div>
             </div>
             <Button
