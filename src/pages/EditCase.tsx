@@ -230,11 +230,11 @@ const EditCase = () => {
               {/* Sex Field */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">Sex</label>
-                <div className="relative w-full">
+                <div className="relative">
                   <select
                     value={sex}
                     onChange={e => setSex(e.target.value)}
-                    className="vmtb-input h-10 w-full appearance-none pr-10 cursor-pointer"
+                    className="vmtb-input w-full appearance-none pr-10 cursor-pointer bg-background py-2"
                   >
                     <option value="">Select sex</option>
                     <option value="Male">Male</option>
