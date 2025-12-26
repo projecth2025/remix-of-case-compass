@@ -254,6 +254,7 @@ const CaseView = () => {
                       messages={groupMessages.map(m => ({
                         id: m.id,
                         senderId: m.senderId,
+                        senderName: m.senderName,
                         content: m.content,
                         timestamp: m.createdAt,
                         isAnonymous: m.isAnonymous,

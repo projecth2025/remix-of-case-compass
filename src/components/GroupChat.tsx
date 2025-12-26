@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 interface GroupChatMessage {
   id: string;
   senderId: string;
+  senderName: string;
   content: string;
   timestamp: string;
   isAnonymous?: boolean;
@@ -46,19 +47,17 @@ const GroupChat = ({ caseId, messages, onSendMessage }: GroupChatProps) => {
     }
   };
 
-  // Generate anonymous participant labels based on sender ID
-  const getParticipantLabel = (senderId: string, msgIsAnonymous?: boolean) => {
+  // Get display name for message sender
+  const getParticipantLabel = (senderId: string, senderName: string, msgIsAnonymous?: boolean) => {
     // If message is anonymous, show "Anonymous" for everyone except the sender
     if (msgIsAnonymous) {
       if (senderId === user?.id) return 'You (Anonymous)';
       return 'Anonymous';
     }
     
+    // Show actual name (or "You" for own messages)
     if (senderId === user?.id) return 'You';
-    // Create consistent participant numbering based on sender ID
-    const senderIds = [...new Set(messages.filter(m => !m.isAnonymous).map(m => m.senderId).filter(id => id !== user?.id))];
-    const participantIndex = senderIds.indexOf(senderId) + 1;
-    return `Participant ${participantIndex}`;
+    return senderName || 'Unknown';
   };
 
   return (
@@ -83,7 +82,7 @@ const GroupChat = ({ caseId, messages, onSendMessage }: GroupChatProps) => {
         )}
         {messages.map((msg) => {
           const isOwnMessage = msg.senderId === user?.id;
-          const participantLabel = getParticipantLabel(msg.senderId, msg.isAnonymous);
+          const participantLabel = getParticipantLabel(msg.senderId, msg.senderName, msg.isAnonymous);
           
           return (
             <div
