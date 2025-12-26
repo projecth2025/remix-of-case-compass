@@ -30,25 +30,43 @@ export function useInvitations() {
 
     setLoading(true);
     try {
-      // Fetch invitations by email (for pending) or user_id (for already linked)
+      // Fetch invitations where user is invited (by email or user_id)
       const { data, error } = await supabase
         .from('invitations')
-        .select(`
-          *,
-          mtb:mtbs(name),
-          inviter:profiles!invitations_invited_by_fkey(name)
-        `)
+        .select('*')
         .or(`invited_email.eq.${profile.email},invited_user_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Invitations query error:', error);
+        throw error;
+      }
+
+      // Fetch MTB names and inviter names separately
+      const mtbIds = [...new Set((data || []).map(inv => inv.mtb_id))];
+      const inviterIds = [...new Set((data || []).map(inv => inv.invited_by))];
+
+      const [mtbsResult, invitersResult] = await Promise.all([
+        supabase.from('mtbs').select('id, name').in('id', mtbIds),
+        supabase.from('profiles').select('id, name').in('id', inviterIds),
+      ]);
+
+      const mtbMap: Record<string, string> = {};
+      const inviterMap: Record<string, string> = {};
+
+      (mtbsResult.data || []).forEach(m => {
+        mtbMap[m.id] = m.name;
+      });
+      (invitersResult.data || []).forEach(p => {
+        inviterMap[p.id] = p.name;
+      });
 
       const mapped = (data || []).map(inv => ({
         id: inv.id,
         mtbId: inv.mtb_id,
-        mtbName: (inv.mtb as any)?.name || 'Unknown MTB',
+        mtbName: mtbMap[inv.mtb_id] || 'Unknown MTB',
         invitedBy: inv.invited_by,
-        invitedByName: (inv.inviter as any)?.name || 'Unknown',
+        invitedByName: inviterMap[inv.invited_by] || 'Unknown',
         invitedEmail: inv.invited_email,
         status: inv.status as 'pending' | 'accepted' | 'declined',
         read: inv.read,
