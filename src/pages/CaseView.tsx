@@ -10,6 +10,7 @@ import GroupChat from '@/components/GroupChat';
 import { useSupabaseData, FullCase } from '@/hooks/useSupabaseData';
 import { useGroupMessages } from '@/hooks/useGroupMessages';
 import { useCaseExperts } from '@/hooks/useCaseExperts';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { Expert, UploadedFile } from '@/lib/storage';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -43,8 +44,11 @@ const CaseView = () => {
   // Fetch experts for this case
   const { experts: caseExperts, mtbId, loading: expertsLoading } = useCaseExperts(id || '');
 
-  // Move useGroupMessages to the top level - use the mtbId from the case
+  // Group messages hook
   const { messages: groupMessages, sendMessage: sendGroupMessage } = useGroupMessages(mtbId || '', id);
+
+  // Unread messages tracking
+  const { hasPrivateUnread, hasGroupUnread, markPrivateAsRead, markGroupAsRead } = useUnreadMessages();
 
   // Load case data from database - always use loadCaseForEditing for full file data
   useEffect(() => {
@@ -103,11 +107,17 @@ const CaseView = () => {
   const handleSelectExpert = (expert: Expert) => {
     setSelectedExpert(expert);
     setChatMode('private');
+    // Mark private chat as read when opened
+    markPrivateAsRead(expert.id, id);
   };
 
   const handleSwitchToGroup = () => {
     setSelectedExpert(null);
     setChatMode('group');
+    // Mark group chat as read when opened
+    if (mtbId) {
+      markGroupAsRead(mtbId, id || null);
+    }
   };
 
   const handleSendGroupMessage = (content: string, isAnonymous: boolean) => {
@@ -229,6 +239,7 @@ const CaseView = () => {
                         )}
                         selectedExpert={selectedExpert}
                         onSelectExpert={handleSelectExpert}
+                        hasUnread={hasPrivateUnread}
                       />
                     )}
                   </div>
@@ -236,12 +247,16 @@ const CaseView = () => {
                     <div className="flex justify-center">
                       <button
                         onClick={handleSwitchToGroup}
-                        className={`px-3 py-1.5 text-sm rounded-lg transition-colors whitespace-nowrap ${
+                        className={`relative px-3 py-1.5 text-sm rounded-lg transition-colors whitespace-nowrap ${
                           chatMode === 'group' ? 'bg-muted text-muted-foreground hover:text-foreground border border-border' : 'bg-vmtb-green text-white'
                         }`}
                         aria-label="Group chat"
                       >
                         Group Chat
+                        {/* Unread indicator for group chat */}
+                        {mtbId && hasGroupUnread(mtbId, id || null) && chatMode !== 'group' && (
+                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-background" />
+                        )}
                       </button>
                     </div>
                   </div>
