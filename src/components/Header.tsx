@@ -26,7 +26,7 @@ const Header = () => {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [invitationsOpen, setInvitationsOpen] = useState(false);
   const [meetingsOpen, setMeetingsOpen] = useState(false);
-  const { notifications, meetings, unreadCount: unreadMeetingsCount, markNotificationsRead, loading: meetingsLoading } = useMeetings();
+  const { meetings, unreadCount: unreadMeetingsCount, markNotificationsRead, loading: meetingsLoading, joinMeeting } = useMeetings();
   const { invitations, unreadCount, markInvitationsRead, acceptInvitation, declineInvitation } = useInvitations();
 
   const isActive = (path: string) => location.pathname.startsWith(path);
@@ -174,8 +174,7 @@ const Header = () => {
         meetings={meetings}
         loading={meetingsLoading}
         onJoin={(meeting) => {
-          // Placeholder for join meeting functionality
-          toast.info(`Joining meeting for ${meeting.mtbName || 'MTB'}`);
+          joinMeeting(meeting);
         }}
       />
     </>

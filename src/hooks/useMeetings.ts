@@ -28,11 +28,40 @@ export interface MeetingResponse {
   comment: string | null;
 }
 
+// Generate a deterministic Jitsi Meet room name from meeting ID
+const generateJitsiLink = (meetingId: string, mtbName: string): string => {
+  // Create a clean room name: MTB name + meeting ID (shortened)
+  const cleanMtbName = mtbName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  const shortId = meetingId.slice(0, 8);
+  return `https://meet.jit.si/vmtb-${cleanMtbName}-${shortId}`;
+};
+
 export function useMeetings() {
   const { user } = useAuth();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = useCallback(async () => {
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
+
+    try {
+      const { count, error } = await supabase
+        .from('meeting_notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (!error && count !== null) {
+        setUnreadCount(count);
+      }
+    } catch (err) {
+      console.error('Error fetching unread count:', err);
+    }
+  }, [user]);
 
   const fetchMeetings = useCallback(async () => {
     if (!user) {
@@ -89,12 +118,15 @@ export function useMeetings() {
       }));
 
       setMeetings(mapped);
+      
+      // Also fetch unread count
+      await fetchUnreadCount();
     } catch (err) {
       console.error('Error fetching meetings:', err);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, fetchUnreadCount]);
 
   const createMeeting = async (
     mtbId: string,
@@ -110,13 +142,24 @@ export function useMeetings() {
     }
 
     try {
+      // First get the MTB name for the meeting link
+      const { data: mtbData } = await supabase
+        .from('mtbs')
+        .select('name')
+        .eq('id', mtbId)
+        .single();
+
+      const mtbName = mtbData?.name || 'meeting';
+      
       const dateStr = scheduledDate.toISOString().split('T')[0];
-      let meetingLink: string | null = null;
       let status: 'scheduled' | 'in_progress' = 'scheduled';
       let startedAt: string | null = null;
 
+      // Generate a temporary ID for the meeting link
+      const tempId = crypto.randomUUID();
+      const meetingLink = generateJitsiLink(tempId, mtbName);
+
       if (scheduleType === 'instant') {
-        meetingLink = `https://meet.google.com/new?instant=${Date.now()}`;
         status = 'in_progress';
         startedAt = new Date().toISOString();
       }
@@ -139,6 +182,13 @@ export function useMeetings() {
         .single();
 
       if (error) throw error;
+
+      // Update the meeting link with the actual meeting ID
+      const actualMeetingLink = generateJitsiLink(data.id, mtbName);
+      await supabase
+        .from('meetings')
+        .update({ meeting_link: actualMeetingLink })
+        .eq('id', data.id);
 
       // Get MTB members to create notifications
       const { data: members } = await supabase
@@ -167,14 +217,14 @@ export function useMeetings() {
         scheduledTime: data.scheduled_time,
         scheduleType: data.schedule_type as 'once' | 'custom' | 'instant',
         repeatDays: data.repeat_days,
-        meetingLink: data.meeting_link,
+        meetingLink: actualMeetingLink,
         status: data.status as 'scheduled' | 'in_progress',
         startedAt: data.started_at,
         createdAt: data.created_at,
       };
 
-      if (scheduleType === 'instant' && meetingLink) {
-        window.open(meetingLink, '_blank');
+      if (scheduleType === 'instant' && actualMeetingLink) {
+        window.open(actualMeetingLink, '_blank');
         toast.success('Instant meeting started');
       } else {
         toast.success('Meeting scheduled');
@@ -214,8 +264,8 @@ export function useMeetings() {
   const joinMeeting = (meeting: Meeting): string | null => {
     if (!user) return null;
 
-    // Generate a fresh meeting link
-    const meetingLink = `https://meet.google.com/new?mid=${meeting.id}&t=${Date.now()}`;
+    // Use the stored meeting link so all participants join the same room
+    const meetingLink = meeting.meetingLink || generateJitsiLink(meeting.id, meeting.mtbName);
     window.open(meetingLink, '_blank');
     return meetingLink;
   };
@@ -320,8 +370,19 @@ export function useMeetings() {
 
   // Mark notifications as read
   const markNotificationsRead = async () => {
-    // Notifications are handled via the meeting_notifications table
-    // For now this is a no-op as we track via meetings directly
+    if (!user) return;
+    
+    try {
+      await supabase
+        .from('meeting_notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+      
+      setUnreadCount(0);
+    } catch (err) {
+      console.error('Error marking notifications as read:', err);
+    }
   };
 
   return {
