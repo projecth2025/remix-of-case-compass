@@ -197,11 +197,17 @@ const MTBDetail = () => {
     joinMeeting(meeting);
   };
 
-  // Filter content based on search
+  // Filter content based on search and section
   const query = searchQuery.toLowerCase();
-  const filteredCases = query
-    ? mtbCases.filter(c => c.caseName.toLowerCase().includes(query) || c.patientName.toLowerCase().includes(query))
+  
+  // Filter cases based on section: mycases shows user's added cases, shared shows all
+  const sectionFilteredCases = activeSection === 'mycases' 
+    ? mtbCases.filter(c => c.addedBy === user?.id)
     : mtbCases;
+  
+  const filteredCases = query
+    ? sectionFilteredCases.filter(c => c.caseName.toLowerCase().includes(query) || c.patientName.toLowerCase().includes(query))
+    : sectionFilteredCases;
   const filteredExperts = query
     ? mtbMembers.filter(m => m.userName.toLowerCase().includes(query) || (m.userProfession || '').toLowerCase().includes(query))
     : mtbMembers;
