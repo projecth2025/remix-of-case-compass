@@ -4,9 +4,9 @@ import Header from '@/components/Header';
 import TabBar from '@/components/TabBar';
 import MTBCard from '@/components/MTBCard';
 import CreateMTBModal from '@/components/CreateMTBModal';
-import { useApp } from '@/contexts/AppContext';
+import { useMTBs } from '@/hooks/useMTBs';
+import { useInvitations } from '@/hooks/useInvitations';
 import { Button } from '@/components/ui/button';
-import { MTB } from '@/lib/storage';
 
 const tabs = [
   { id: 'my', label: 'My MTBs' },
@@ -14,29 +14,28 @@ const tabs = [
 ];
 
 const MTBsList = () => {
-  const { state, createMTB, sendInvitations } = useApp();
+  const { mtbs, loading, createMTB } = useMTBs();
+  const { sendInvitations } = useInvitations();
   const [activeTab, setActiveTab] = useState('my');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  const myMTBs = state.mtbs.filter(m => m.isOwner);
-  const enrolledMTBs = state.mtbs.filter(m => !m.isOwner);
+  const myMTBs = mtbs.filter(m => m.isOwner);
+  const enrolledMTBs = mtbs.filter(m => !m.isOwner);
 
   const displayedMTBs = activeTab === 'my' ? myMTBs : enrolledMTBs;
 
-  const handleCreateMTB = (data: {
+  const handleCreateMTB = async (data: {
     name: string;
     dpImage: string | null;
     expertEmails: string[];
     caseIds: string[];
   }) => {
-    if (createMTB) {
-      const newMTB = createMTB(data.name, data.dpImage, data.caseIds);
-      // Send invitations to expert emails
-      if (sendInvitations && newMTB) {
-        sendInvitations(newMTB.id, newMTB.name, data.expertEmails);
-      }
+    const newMTB = await createMTB(data.name, undefined, data.dpImage || undefined, data.caseIds);
+    // Send invitations to expert emails
+    if (newMTB && data.expertEmails.length > 0) {
+      await sendInvitations(newMTB.id, data.expertEmails);
     }
   };
 
@@ -73,12 +72,38 @@ const MTBsList = () => {
     
     setDraggedIndex(null);
     setDragOverIndex(null);
-  }, [draggedIndex, displayedMTBs, activeTab]);
+  }, [draggedIndex, displayedMTBs]);
 
   const handleDragEnd = useCallback(() => {
     setDraggedIndex(null);
     setDragOverIndex(null);
   }, []);
+
+  // Convert useMTBs MTB type to MTBCard expected type
+  const convertMTB = (mtb: typeof mtbs[0]) => ({
+    id: mtb.id,
+    name: mtb.name,
+    dpImage: mtb.dpImage,
+    experts: [],
+    cases: [],
+    ownerId: mtb.ownerId,
+    isOwner: mtb.isOwner,
+    doctorName: mtb.ownerName,
+    description: mtb.description || '',
+    expertsCount: mtb.expertsCount,
+    casesCount: mtb.casesCount,
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-muted">
+        <Header />
+        <div className="flex items-center justify-center h-[calc(100vh-3rem)]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted">
@@ -117,7 +142,7 @@ const MTBsList = () => {
                 }`}
                 style={{ cursor: draggedIndex !== null ? 'grabbing' : 'grab' }}
               >
-                <MTBCard mtb={mtb} isDragging={draggedIndex === index} />
+                <MTBCard mtb={convertMTB(mtb)} isDragging={draggedIndex === index} />
               </div>
             ))}
           </div>

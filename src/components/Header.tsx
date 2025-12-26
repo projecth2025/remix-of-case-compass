@@ -27,7 +27,7 @@ const Header = () => {
   const [invitationsOpen, setInvitationsOpen] = useState(false);
   const [meetingsOpen, setMeetingsOpen] = useState(false);
   const { notifications, meetings, unreadCount: unreadMeetingsCount, markNotificationsRead, loading: meetingsLoading } = useMeetings();
-  const { invitations, unreadCount, markAsRead, acceptInvitation, declineInvitation } = useInvitations();
+  const { invitations, unreadCount, markInvitationsRead, acceptInvitation, declineInvitation } = useInvitations();
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
@@ -41,7 +41,7 @@ const Header = () => {
 
   const handleOpenInvitations = () => {
     setInvitationsOpen(true);
-    markAsRead();
+    markInvitationsRead();
   };
 
   const handleAcceptInvitation = async (invitation: Invitation) => {

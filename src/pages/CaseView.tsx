@@ -215,9 +215,7 @@ const CaseView = () => {
                   </div>
                   <div className="flex-1 overflow-y-auto hide-scrollbar pr-4 pl-4 pt-0">
                     <ExpertList
-                      experts={state.experts.filter(expert => 
-                        expert.name.toLowerCase().includes(searchTerm.toLowerCase())
-                      )}
+                      experts={[]}
                       selectedExpert={selectedExpert}
                       onSelectExpert={handleSelectExpert}
                     />
@@ -237,7 +235,6 @@ const CaseView = () => {
                   </div>
                 </div>
 
-                {/* Chat Area */}
                 <div className="flex-1 min-w-0 bg-primary/5">
                   {chatMode === 'group' ? (
                     <GroupChat
@@ -247,6 +244,8 @@ const CaseView = () => {
                         senderId: m.senderId,
                         content: m.content,
                         timestamp: m.createdAt,
+                        expertId: m.senderId,
+                        caseId: caseData.id,
                       }))}
                       onSendMessage={handleSendGroupMessage}
                     />

@@ -7,8 +7,10 @@ import AddExpertModal from '@/components/AddExpertModal';
 import AddCaseToMTBModal from '@/components/AddCaseToMTBModal';
 import ConfirmModal from '@/components/ConfirmModal';
 import ScheduleMeetModal from '@/components/ScheduleMeetModal';
-import { useApp } from '@/contexts/AppContext';
+import { useMTBs, MTBMember, MTBCase } from '@/hooks/useMTBs';
+import { useInvitations } from '@/hooks/useInvitations';
 import { useMeetings } from '@/hooks/useMeetings';
+import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { formatTime12Hour, formatMeetingDateShort, isJoinEnabled } from '@/lib/meetingUtils';
@@ -24,7 +26,12 @@ const MTBDetail = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { state, removeExpertFromMTB, sendInvitations, addCasesToMTB, removeCaseFromMTB, loadCaseForEditing } = useApp();
+  const { user } = useAuth();
+  
+  // Hooks
+  const { mtbs, getMTBMembers, getMTBCases, addCasesToMTB, removeCaseFromMTB, removeMemberFromMTB } = useMTBs();
+  const { sendInvitations } = useInvitations();
+  const { createMeeting, deleteMeeting, joinMeeting, getMeetingsForMTB } = useMeetings();
   
   // Get section from query params
   const sectionFromUrl = searchParams.get('section');
@@ -42,8 +49,10 @@ const MTBDetail = () => {
   const [meetingToCancel, setMeetingToCancel] = useState<Meeting | null>(null);
   const [cancelMeetingModalOpen, setCancelMeetingModalOpen] = useState(false);
   
-  // All hooks must be called before any conditional returns
-  const { createMeeting, deleteMeeting, joinMeeting, getMeetingsForMTB } = useMeetings();
+  // MTB data state
+  const [mtbMembers, setMtbMembers] = useState<MTBMember[]>([]);
+  const [mtbCases, setMtbCases] = useState<MTBCase[]>([]);
+  const [mtbMeetings, setMtbMeetings] = useState<Meeting[]>([]);
   
   // Update active section when URL changes
   useEffect(() => {
@@ -53,7 +62,16 @@ const MTBDetail = () => {
   }, [sectionFromUrl]);
 
   // Get MTB from state
-  const mtb = id ? state.mtbs.find(m => m.id === id) : null;
+  const mtb = id ? mtbs.find(m => m.id === id) : null;
+  
+  // Load MTB data
+  useEffect(() => {
+    if (id) {
+      getMTBMembers(id).then(setMtbMembers);
+      getMTBCases(id).then(setMtbCases);
+      setMtbMeetings(getMeetingsForMTB(id));
+    }
+  }, [id, getMTBMembers, getMTBCases, getMeetingsForMTB]);
 
   // Defensive checks - after all hooks
   if (!id) {
@@ -77,7 +95,6 @@ const MTBDetail = () => {
   }
 
   if (!mtb) {
-    console.warn(`MTB with ID "${id}" not found in state. Available MTB IDs:`, state.mtbs.map(m => m.id));
     return (
       <div className="min-h-screen bg-muted flex flex-col">
         <Header />
@@ -100,35 +117,27 @@ const MTBDetail = () => {
   // Check if current user is owner
   const isOwner = mtb.isOwner;
 
-  // Get cases associated with this MTB
-  const myCases = state.cases.filter(c => mtb.cases.includes(c.id));
-  const sharedCases = state.cases.filter(c => mtb.cases.includes(c.id)).slice(0, 2);
-
-  // Get experts for this MTB
-  const mtbExperts = state.experts.filter(e => mtb.experts.includes(e.id));
-
-  const handleAddExpert = (email: string) => {
-    if (sendInvitations) {
-      sendInvitations(mtb.id, mtb.name, [email]);
-    }
-    console.log('Adding expert:', { email });
+  const handleAddExpert = async (email: string) => {
+    await sendInvitations(mtb.id, [email]);
   };
 
-  const handleAddCases = (caseIds: string[]) => {
-    if (addCasesToMTB) {
-      addCasesToMTB(mtb.id, caseIds);
-      setShowAddCase(false);
-    }
+  const handleAddCases = async (caseIds: string[]) => {
+    await addCasesToMTB(mtb.id, caseIds);
+    const updatedCases = await getMTBCases(mtb.id);
+    setMtbCases(updatedCases);
+    setShowAddCase(false);
   };
 
-  const handleRemoveExpertClick = (expertId: string) => {
-    setExpertToRemove(expertId);
+  const handleRemoveExpertClick = (userId: string) => {
+    setExpertToRemove(userId);
     setRemoveExpertModalOpen(true);
   };
 
-  const handleConfirmRemoveExpert = () => {
-    if (expertToRemove && removeExpertFromMTB) {
-      removeExpertFromMTB(mtb.id, expertToRemove);
+  const handleConfirmRemoveExpert = async () => {
+    if (expertToRemove) {
+      await removeMemberFromMTB(mtb.id, expertToRemove);
+      const updatedMembers = await getMTBMembers(mtb.id);
+      setMtbMembers(updatedMembers);
     }
     setRemoveExpertModalOpen(false);
     setExpertToRemove(null);
@@ -139,9 +148,11 @@ const MTBDetail = () => {
     setDeleteCaseModalOpen(true);
   };
 
-  const handleConfirmDeleteCase = () => {
-    if (caseToDelete && removeCaseFromMTB) {
-      removeCaseFromMTB(mtb.id, caseToDelete);
+  const handleConfirmDeleteCase = async () => {
+    if (caseToDelete) {
+      await removeCaseFromMTB(mtb.id, caseToDelete);
+      const updatedCases = await getMTBCases(mtb.id);
+      setMtbCases(updatedCases);
     }
     setDeleteCaseModalOpen(false);
     setCaseToDelete(null);
@@ -155,140 +166,29 @@ const MTBDetail = () => {
   const handleConfirmCancelMeeting = async () => {
     if (meetingToCancel) {
       await deleteMeeting(meetingToCancel.id);
+      const updatedMeetings = await getMeetingsForMTB(mtb.id);
+      setMtbMeetings(updatedMeetings);
     }
     setCancelMeetingModalOpen(false);
     setMeetingToCancel(null);
   };
 
   const handleJoinMeeting = (meeting: Meeting) => {
-    // Use joinMeeting to reuse existing meeting link
     joinMeeting(meeting);
   };
 
   // Filter content based on search
   const query = searchQuery.toLowerCase();
-  const filteredMyCases = query
-    ? myCases.filter(c => c.caseName.toLowerCase().includes(query) || c.patient.name.toLowerCase().includes(query))
-    : myCases;
-  const filteredSharedCases = query
-    ? sharedCases.filter(c => c.caseName.toLowerCase().includes(query) || c.patient.name.toLowerCase().includes(query))
-    : sharedCases;
+  const filteredCases = query
+    ? mtbCases.filter(c => c.caseName.toLowerCase().includes(query) || c.patientName.toLowerCase().includes(query))
+    : mtbCases;
   const filteredExperts = query
-    ? mtbExperts.filter(e => e.name.toLowerCase().includes(query) || e.specialty.toLowerCase().includes(query))
-    : mtbExperts;
+    ? mtbMembers.filter(m => m.userName.toLowerCase().includes(query) || (m.userProfession || '').toLowerCase().includes(query))
+    : mtbMembers;
 
   const renderContent = () => {
     switch (activeSection) {
       case 'mycases':
-        return (
-          <div className="p-4 md:p-6 animate-fade-in h-full overflow-y-auto">
-            <div className="vmtb-card p-6">
-              {/* Header with MTB name and search */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex items-center justify-center border-2 border-border flex-shrink-0">
-                    {mtb.dpImage ? (
-                      <img src={mtb.dpImage} alt={mtb.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
-                        <User className="w-5 h-5 text-primary/60" />
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <h2 className="font-semibold text-foreground">{mtb.name}</h2>
-                    <p className="text-sm text-muted-foreground">My Cases</p>
-                  </div>
-                </div>
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search..."
-                    className="pl-9 pr-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  />
-                </div>
-              </div>
-
-              {filteredMyCases.length === 0 ? (
-                <div className="py-12 text-center text-muted-foreground">
-                  <p>No cases have been added to this MTB yet.</p>
-                  {isOwner && <p className="text-sm mt-2">Use the sidebar to add cases.</p>}
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-4 text-muted-foreground font-medium">Case Name</th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-medium">Patient Name</th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-medium">Patient Info</th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-medium">Cancer Type</th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-medium">Status</th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-medium">Created Date</th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-medium">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredMyCases.map(caseItem => (
-                        <tr key={caseItem.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                          <td className="py-4 px-4 text-foreground font-medium">{caseItem.caseName}</td>
-                          <td className="py-4 px-4 text-foreground">{caseItem.patient.name}</td>
-                          <td className="py-4 px-4 text-foreground">
-                            {caseItem.patient.age}y, {caseItem.patient.sex.charAt(0).toUpperCase()}
-                          </td>
-                          <td className="py-4 px-4 text-foreground">{caseItem.patient.cancerType}</td>
-                          <td className="py-4 px-4">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              caseItem.status === 'Completed' 
-                                ? 'bg-green-100 text-green-700' 
-                                : 'bg-yellow-100 text-yellow-700'
-                            }`}>
-                              {caseItem.status}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4 text-foreground text-sm">{new Date(caseItem.createdDate).toLocaleDateString()}</td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-2">
-                              <button 
-                                onClick={() => navigate(`/cases/${caseItem.id}`)}
-                                className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-colors"
-                                title="View case"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => {
-                                  if (loadCaseForEditing(caseItem.id)) {
-                                    navigate(`/upload/preview/0`);
-                                  }
-                                }}
-                                className="p-2 rounded-lg hover:bg-blue-500/10 text-blue-500 transition-colors"
-                                title="Edit case"
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteCaseClick(caseItem.id)}
-                                className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
-                                title="Delete case"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-
       case 'shared':
         return (
           <div className="p-4 md:p-6 animate-fade-in h-full overflow-y-auto">
@@ -307,7 +207,7 @@ const MTBDetail = () => {
                   </div>
                   <div>
                     <h2 className="font-semibold text-foreground">{mtb.name}</h2>
-                    <p className="text-sm text-muted-foreground">Shared Cases</p>
+                    <p className="text-sm text-muted-foreground">{activeSection === 'mycases' ? 'My Cases' : 'Shared Cases'}</p>
                   </div>
                 </div>
                 <div className="relative">
@@ -322,9 +222,10 @@ const MTBDetail = () => {
                 </div>
               </div>
 
-              {filteredSharedCases.length === 0 ? (
+              {filteredCases.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground">
-                  <p>No shared cases in this MTB yet.</p>
+                  <p>No cases have been added to this MTB yet.</p>
+                  {isOwner && <p className="text-sm mt-2">Use the sidebar to add cases.</p>}
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -332,43 +233,38 @@ const MTBDetail = () => {
                     <thead>
                       <tr className="border-b border-border">
                         <th className="text-left py-3 px-4 text-muted-foreground font-medium">Case Name</th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-medium">Shared By</th>
                         <th className="text-left py-3 px-4 text-muted-foreground font-medium">Patient Name</th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-medium">Patient Info</th>
                         <th className="text-left py-3 px-4 text-muted-foreground font-medium">Cancer Type</th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-medium">Status</th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-medium">Created Date</th>
+                        <th className="text-left py-3 px-4 text-muted-foreground font-medium">Added</th>
                         <th className="text-left py-3 px-4 text-muted-foreground font-medium">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredSharedCases.map(caseItem => (
+                      {filteredCases.map(caseItem => (
                         <tr key={caseItem.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                           <td className="py-4 px-4 text-foreground font-medium">{caseItem.caseName}</td>
-                          <td className="py-4 px-4 text-foreground text-sm">{state.users.find(u => u.id === caseItem.ownerId)?.name || 'Unknown'}</td>
-                          <td className="py-4 px-4 text-foreground">{caseItem.patient.name}</td>
-                          <td className="py-4 px-4 text-foreground">
-                            {caseItem.patient.age}y, {caseItem.patient.sex.charAt(0).toUpperCase()}
-                          </td>
-                          <td className="py-4 px-4 text-foreground">{caseItem.patient.cancerType}</td>
+                          <td className="py-4 px-4 text-foreground">{caseItem.patientName}</td>
+                          <td className="py-4 px-4 text-foreground">{caseItem.cancerType || 'N/A'}</td>
+                          <td className="py-4 px-4 text-foreground text-sm">{new Date(caseItem.addedAt).toLocaleDateString()}</td>
                           <td className="py-4 px-4">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              caseItem.status === 'Completed' 
-                                ? 'bg-green-100 text-green-700' 
-                                : 'bg-yellow-100 text-yellow-700'
-                            }`}>
-                              {caseItem.status}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4 text-foreground text-sm">{new Date(caseItem.createdDate).toLocaleDateString()}</td>
-                          <td className="py-4 px-4">
-                            <button 
-                              onClick={() => navigate(`/cases/${caseItem.id}`)}
-                              className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-colors"
-                              title="View case"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => navigate(`/cases/${caseItem.caseId}`)}
+                                className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-colors"
+                                title="View case"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              {isOwner && (
+                                <button 
+                                  onClick={() => handleDeleteCaseClick(caseItem.caseId)}
+                                  className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+                                  title="Remove from MTB"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -384,7 +280,7 @@ const MTBDetail = () => {
         return (
           <div className="p-4 md:p-6 animate-fade-in h-full overflow-y-auto">
             <div className="vmtb-card p-6">
-              {/* Header with MTB name and search */}
+              {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex items-center justify-center border-2 border-border flex-shrink-0">
@@ -413,50 +309,58 @@ const MTBDetail = () => {
                 </div>
               </div>
 
-              {filteredExperts.length === 0 ? (
-                <div className="py-12 text-center text-muted-foreground">
-                  <p>No experts in this MTB yet.</p>
-                  {isOwner && <p className="text-sm mt-2">Use the sidebar to add experts.</p>}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {filteredExperts.map(expert => (
-                    <div 
-                      key={expert.id}
-                      className="flex items-center justify-between p-3 bg-card border border-border rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-                          {expert.avatar ? (
-                            <img src={expert.avatar} alt={expert.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <User className="w-5 h-5 text-muted-foreground" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground text-sm">{expert.name}</p>
-                          <p className="text-xs text-muted-foreground">{expert.specialty}</p>
-                        </div>
-                      </div>
-                      {isOwner && (
-                        <button
-                          onClick={() => handleRemoveExpertClick(expert.id)}
-                          className="p-1.5 hover:bg-destructive/10 text-destructive rounded-full transition-colors flex-shrink-0"
-                          title="Remove expert"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+              {/* Non-owner disclaimer */}
+              {!isOwner && (
+                <div className="mb-6 p-4 bg-muted/50 border border-border rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    Only the MTB owner can add or remove experts.
+                  </p>
                 </div>
               )}
 
-              {!isOwner && (
-                <div className="mt-6 pt-4 border-t border-border">
-                  <p className="text-xs text-muted-foreground">
-                    To add experts to this MTB, please contact the MTB creator.
-                  </p>
+              {filteredExperts.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground">
+                  <p>No experts in this MTB yet.</p>
+                  {isOwner && <p className="text-sm mt-2">Use the sidebar to invite experts.</p>}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredExperts.map(member => (
+                    <div 
+                      key={member.id}
+                      className="p-4 border border-border rounded-lg bg-card hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex items-center justify-center">
+                            {member.userAvatar ? (
+                              <img src={member.userAvatar} alt={member.userName} className="w-full h-full object-cover" />
+                            ) : (
+                              <User className="w-5 h-5 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">{member.userName}</p>
+                            <p className="text-sm text-muted-foreground">{member.userProfession || 'Expert'}</p>
+                          </div>
+                        </div>
+                        {isOwner && member.role !== 'owner' && (
+                          <button
+                            onClick={() => handleRemoveExpertClick(member.userId)}
+                            className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+                            title="Remove expert"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <p className="text-xs text-muted-foreground">
+                          {member.role === 'owner' ? 'Owner' : `Joined ${new Date(member.joinedAt).toLocaleDateString()}`}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -464,14 +368,11 @@ const MTBDetail = () => {
         );
 
       case 'meetings':
-        const mtbMeetings = getMeetingsForMTB(mtb.id);
-        // Meetings are already sorted from getMeetingsForMTB
-
         return (
-          <div className="p-4 md:p-6 animate-fade-in h-full flex flex-col overflow-hidden">
-            <div className="vmtb-card p-6 flex flex-col h-full overflow-hidden">
-              {/* Header with MTB name */}
-              <div className="flex items-center justify-between mb-6 flex-shrink-0">
+          <div className="p-4 md:p-6 animate-fade-in h-full overflow-y-auto">
+            <div className="vmtb-card p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex items-center justify-center border-2 border-border flex-shrink-0">
                     {mtb.dpImage ? (
@@ -484,19 +385,19 @@ const MTBDetail = () => {
                   </div>
                   <div>
                     <h2 className="font-semibold text-foreground">{mtb.name}</h2>
-                    <p className="text-sm text-muted-foreground">Scheduled Meetings</p>
+                    <p className="text-sm text-muted-foreground">Meetings</p>
                   </div>
                 </div>
               </div>
 
               {mtbMeetings.length === 0 ? (
-                <div className="py-12 text-center text-muted-foreground flex-1">
-                  <Calendar className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                  <p>No upcoming meetings scheduled for this MTB.</p>
-                  {isOwner && <p className="text-sm mt-2">Use "Schedule a Meet" in the sidebar to schedule one.</p>}
+                <div className="py-12 text-center text-muted-foreground">
+                  <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No meetings scheduled.</p>
+                  {isOwner && <p className="text-sm mt-2">Use the sidebar to schedule a meeting.</p>}
                 </div>
               ) : (
-                <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+                <div className="space-y-4">
                   {mtbMeetings.map(meeting => {
                     const joinEnabled = isJoinEnabled(meeting);
                     
@@ -511,12 +412,12 @@ const MTBDetail = () => {
                           </div>
                           <div>
                             <p className="font-medium text-foreground">
-                              {formatMeetingDateShort(meeting.scheduled_date)}
+                              {formatMeetingDateShort(meeting.scheduledDate)}
                             </p>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Clock className="w-3.5 h-3.5" />
-                              <span>{formatTime12Hour(meeting.scheduled_time)}</span>
-                              {meeting.schedule_type === 'custom' && meeting.repeat_days && meeting.repeat_days.length > 0 && (
+                              <span>{formatTime12Hour(meeting.scheduledTime)}</span>
+                              {meeting.scheduleType === 'custom' && meeting.repeatDays && meeting.repeatDays.length > 0 && (
                                 <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                                   Recurring
                                 </span>
@@ -542,14 +443,16 @@ const MTBDetail = () => {
                             <Video className="w-4 h-4" />
                             {meeting.status === 'in_progress' ? 'Rejoin' : 'Join'}
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleCancelMeetingClick(meeting)}
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            Cancel
-                          </Button>
+                          {isOwner && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCancelMeetingClick(meeting)}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              Cancel
+                            </Button>
+                          )}
                         </div>
                       </div>
                     );
@@ -571,116 +474,93 @@ const MTBDetail = () => {
     }
   };
 
-  try {
-    return (
-      <div className="h-screen bg-muted flex flex-col overflow-hidden">
-        <Header />
-        
-        {/* Main layout with sidebar */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar - Fixed position */}
-          <MTBSidebar
-            activeSection={activeSection}
-            onSectionChange={(section) => {
-              setActiveSection(section);
-              setSearchQuery('');
-            }}
-            isOwner={isOwner}
-            onAddCase={() => setShowAddCase(true)}
-            onScheduleMeet={() => setShowScheduleMeet(true)}
-            onAddExpert={() => setShowAddExpert(true)}
-            onCollapsedChange={setIsSidebarCollapsed}
-          />
-
-          {/* Main Content - with left margin to account for fixed sidebar */}
-          <main className={`flex-1 overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'ml-16' : 'ml-56'}`}>
-            {renderContent()}
-          </main>
-        </div>
-
-        {/* Add Expert Modal */}
-        <AddExpertModal
-          open={showAddExpert}
-          onOpenChange={setShowAddExpert}
-          onAdd={handleAddExpert}
-        />
-
-        {/* Add Case to MTB Modal */}
-        <AddCaseToMTBModal
-          open={showAddCase}
-          onOpenChange={setShowAddCase}
-          onAddCases={handleAddCases}
-        />
-
-        {/* Schedule Meet Modal */}
-        <ScheduleMeetModal
-          open={showScheduleMeet}
-          onOpenChange={setShowScheduleMeet}
-          mtbId={mtb.id}
-          mtbName={mtb.name}
-          onSchedule={async (scheduledDate, scheduledTime, scheduleType, repeatDays, explicitDates) => {
-            await createMeeting(mtb.id, mtb.name, scheduledDate, scheduledTime, scheduleType, repeatDays, explicitDates);
+  return (
+    <div className="h-screen bg-muted flex flex-col overflow-hidden">
+      <Header />
+      
+      {/* Main layout with sidebar */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar - Fixed position */}
+        <MTBSidebar
+          activeSection={activeSection}
+          onSectionChange={(section) => {
+            setActiveSection(section);
+            setSearchQuery('');
           }}
+          isOwner={isOwner}
+          onAddCase={() => setShowAddCase(true)}
+          onScheduleMeet={() => setShowScheduleMeet(true)}
+          onAddExpert={() => setShowAddExpert(true)}
+          onCollapsedChange={setIsSidebarCollapsed}
         />
 
-        {/* Remove Expert Confirmation Modal */}
-        <ConfirmModal
-          open={removeExpertModalOpen}
-          onOpenChange={setRemoveExpertModalOpen}
-          title="Remove Expert"
-          description="Are you sure you want to remove this expert from the MTB?"
-          confirmLabel="Remove"
-          onConfirm={handleConfirmRemoveExpert}
-          destructive
-        />
-
-        {/* Delete Case Confirmation Modal */}
-        <ConfirmModal
-          open={deleteCaseModalOpen}
-          onOpenChange={setDeleteCaseModalOpen}
-          title="Delete Case"
-          description="Are you sure you want to delete this case? This action cannot be undone."
-          confirmLabel="Delete"
-          onConfirm={handleConfirmDeleteCase}
-          destructive
-        />
-
-        {/* Cancel Meeting Confirmation Modal */}
-        <ConfirmModal
-          open={cancelMeetingModalOpen}
-          onOpenChange={setCancelMeetingModalOpen}
-          title="Cancel Meeting"
-          description="Are you sure you want to cancel this meeting? This action cannot be undone."
-          confirmLabel="Confirm Cancel"
-          onConfirm={handleConfirmCancelMeeting}
-          destructive
-        />
+        {/* Main Content - with left margin to account for fixed sidebar */}
+        <main className={`flex-1 overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'ml-16' : 'ml-56'}`}>
+          {renderContent()}
+        </main>
       </div>
-    );
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    console.error("MTB DETAIL RENDER ERROR:", err);
-    return (
-      <div className="min-h-screen bg-muted flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg border border-red-200 p-6 max-w-md">
-            <h2 className="text-lg font-semibold text-red-700 mb-2">Render Error</h2>
-            <p className="text-sm text-gray-600 mb-4">Failed to render MTB detail page:</p>
-            <div className="bg-gray-100 p-3 rounded text-xs font-mono text-gray-800 mb-4 overflow-auto max-h-32">
-              {errorMessage}
-            </div>
-            <button
-              onClick={() => navigate('/mtbs')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Back to MTBs
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+
+      {/* Add Expert Modal */}
+      <AddExpertModal
+        open={showAddExpert}
+        onOpenChange={setShowAddExpert}
+        onAdd={handleAddExpert}
+      />
+
+      {/* Add Case to MTB Modal */}
+      <AddCaseToMTBModal
+        open={showAddCase}
+        onOpenChange={setShowAddCase}
+        onAddCases={handleAddCases}
+      />
+
+      {/* Schedule Meet Modal */}
+      <ScheduleMeetModal
+        open={showScheduleMeet}
+        onOpenChange={setShowScheduleMeet}
+        mtbId={mtb.id}
+        mtbName={mtb.name}
+        onSchedule={async (scheduledDate, scheduledTime, scheduleType, repeatDays) => {
+          const dateObj = new Date(scheduledDate);
+          await createMeeting(mtb.id, dateObj, scheduledTime, scheduleType, repeatDays);
+          setMtbMeetings(getMeetingsForMTB(mtb.id));
+        }}
+      />
+
+      {/* Remove Expert Confirmation Modal */}
+      <ConfirmModal
+        open={removeExpertModalOpen}
+        onOpenChange={setRemoveExpertModalOpen}
+        title="Remove Expert"
+        description="Are you sure you want to remove this expert from the MTB?"
+        confirmLabel="Remove"
+        onConfirm={handleConfirmRemoveExpert}
+        destructive
+      />
+
+      {/* Delete Case Confirmation Modal */}
+      <ConfirmModal
+        open={deleteCaseModalOpen}
+        onOpenChange={setDeleteCaseModalOpen}
+        title="Remove Case"
+        description="Are you sure you want to remove this case from the MTB?"
+        confirmLabel="Remove"
+        onConfirm={handleConfirmDeleteCase}
+        destructive
+      />
+
+      {/* Cancel Meeting Confirmation Modal */}
+      <ConfirmModal
+        open={cancelMeetingModalOpen}
+        onOpenChange={setCancelMeetingModalOpen}
+        title="Cancel Meeting"
+        description="Are you sure you want to cancel this meeting? This action cannot be undone."
+        confirmLabel="Confirm Cancel"
+        onConfirm={handleConfirmCancelMeeting}
+        destructive
+      />
+    </div>
+  );
 };
 
 export default MTBDetail;
