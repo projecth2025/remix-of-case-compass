@@ -1,21 +1,31 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Users } from 'lucide-react';
-import { ChatMessage } from '@/lib/storage';
+import { Send, Users, EyeOff, Eye } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+
+interface GroupChatMessage {
+  id: string;
+  senderId: string;
+  content: string;
+  timestamp: string;
+  isAnonymous?: boolean;
+}
 
 interface GroupChatProps {
   caseId: string;
-  messages: ChatMessage[];
-  onSendMessage: (content: string) => void;
+  messages: GroupChatMessage[];
+  onSendMessage: (content: string, isAnonymous: boolean) => void;
 }
 
 /**
  * GroupChat component displays anonymized group chat messages.
- * Messages are labeled with generic participant names for privacy.
+ * Messages can be sent anonymously using the toggle.
  */
 const GroupChat = ({ caseId, messages, onSendMessage }: GroupChatProps) => {
   const { user } = useAuth();
   const [message, setMessage] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,7 +34,7 @@ const GroupChat = ({ caseId, messages, onSendMessage }: GroupChatProps) => {
 
   const handleSend = () => {
     if (message.trim()) {
-      onSendMessage(message.trim());
+      onSendMessage(message.trim(), isAnonymous);
       setMessage('');
     }
   };
@@ -37,10 +47,16 @@ const GroupChat = ({ caseId, messages, onSendMessage }: GroupChatProps) => {
   };
 
   // Generate anonymous participant labels based on sender ID
-  const getParticipantLabel = (senderId: string, index: number) => {
+  const getParticipantLabel = (senderId: string, msgIsAnonymous?: boolean) => {
+    // If message is anonymous, show "Anonymous" for everyone except the sender
+    if (msgIsAnonymous) {
+      if (senderId === user?.id) return 'You (Anonymous)';
+      return 'Anonymous';
+    }
+    
     if (senderId === user?.id) return 'You';
     // Create consistent participant numbering based on sender ID
-    const senderIds = [...new Set(messages.map(m => m.senderId).filter(id => id !== user?.id))];
+    const senderIds = [...new Set(messages.filter(m => !m.isAnonymous).map(m => m.senderId).filter(id => id !== user?.id))];
     const participantIndex = senderIds.indexOf(senderId) + 1;
     return `Participant ${participantIndex}`;
   };
@@ -54,7 +70,7 @@ const GroupChat = ({ caseId, messages, onSendMessage }: GroupChatProps) => {
         </div>
         <div>
           <p className="font-medium text-foreground">Group Discussion</p>
-          <p className="text-sm text-muted-foreground">Messages are anonymized</p>
+          <p className="text-sm text-muted-foreground">Collaborate with experts</p>
         </div>
       </div>
 
@@ -65,16 +81,19 @@ const GroupChat = ({ caseId, messages, onSendMessage }: GroupChatProps) => {
             No messages yet. Start the group discussion!
           </div>
         )}
-        {messages.map((msg, index) => {
+        {messages.map((msg) => {
           const isOwnMessage = msg.senderId === user?.id;
-          const participantLabel = getParticipantLabel(msg.senderId, index);
+          const participantLabel = getParticipantLabel(msg.senderId, msg.isAnonymous);
           
           return (
             <div
               key={msg.id}
               className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'}`}
             >
-              <span className="text-xs text-muted-foreground mb-1">{participantLabel}</span>
+              <span className={`text-xs mb-1 flex items-center gap-1 ${msg.isAnonymous ? 'text-muted-foreground italic' : 'text-muted-foreground'}`}>
+                {msg.isAnonymous && <EyeOff className="w-3 h-3" />}
+                {participantLabel}
+              </span>
               <div
                 className={`max-w-[70%] px-4 py-2 rounded-2xl ${
                   isOwnMessage
@@ -92,13 +111,33 @@ const GroupChat = ({ caseId, messages, onSendMessage }: GroupChatProps) => {
 
       {/* Input */}
       <div className="p-4 border-t border-border">
+        {/* Anonymous Toggle */}
+        <div className="flex items-center justify-between mb-3 px-1">
+          <div className="flex items-center gap-2">
+            {isAnonymous ? (
+              <EyeOff className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <Eye className="w-4 h-4 text-muted-foreground" />
+            )}
+            <Label htmlFor="anonymous-mode" className="text-sm text-muted-foreground cursor-pointer">
+              {isAnonymous ? 'Sending anonymously' : 'Visible to others'}
+            </Label>
+          </div>
+          <Switch
+            id="anonymous-mode"
+            checked={isAnonymous}
+            onCheckedChange={setIsAnonymous}
+            aria-label="Toggle anonymous mode"
+          />
+        </div>
+        
         <div className="flex items-center gap-2">
           <input
             type="text"
             value={message}
             onChange={e => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Type a message to the group..."
+            placeholder={isAnonymous ? "Type an anonymous message..." : "Type a message to the group..."}
             className="flex-1 vmtb-input"
             aria-label="Group message input"
           />

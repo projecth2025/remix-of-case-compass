@@ -9,7 +9,8 @@ import ChatBox from '@/components/ChatBox';
 import GroupChat from '@/components/GroupChat';
 import { useSupabaseData, FullCase } from '@/hooks/useSupabaseData';
 import { useGroupMessages } from '@/hooks/useGroupMessages';
-import { Expert, UploadedFile, ChatMessage } from '@/lib/storage';
+import { useCaseExperts } from '@/hooks/useCaseExperts';
+import { Expert, UploadedFile } from '@/lib/storage';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -39,8 +40,11 @@ const CaseView = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Move useGroupMessages to the top level - hooks must be called unconditionally
-  const { messages: groupMessages, sendMessage: sendGroupMessage } = useGroupMessages(id || '');
+  // Fetch experts for this case
+  const { experts: caseExperts, mtbId, loading: expertsLoading } = useCaseExperts(id || '');
+
+  // Move useGroupMessages to the top level - use the mtbId from the case
+  const { messages: groupMessages, sendMessage: sendGroupMessage } = useGroupMessages(mtbId || '', id);
 
   // Load case data from database - always use loadCaseForEditing for full file data
   useEffect(() => {
@@ -106,8 +110,8 @@ const CaseView = () => {
     setChatMode('group');
   };
 
-  const handleSendGroupMessage = (content: string) => {
-    sendGroupMessage(content);
+  const handleSendGroupMessage = (content: string, isAnonymous: boolean) => {
+    sendGroupMessage(content, isAnonymous);
   };
 
   const handleDownloadReport = () => {
@@ -213,11 +217,20 @@ const CaseView = () => {
                     />
                   </div>
                   <div className="flex-1 overflow-y-auto hide-scrollbar pr-4 pl-4 pt-0">
-                    <ExpertList
-                      experts={[]}
-                      selectedExpert={selectedExpert}
-                      onSelectExpert={handleSelectExpert}
-                    />
+                    {expertsLoading ? (
+                      <div className="text-center text-muted-foreground py-4">Loading experts...</div>
+                    ) : caseExperts.length === 0 ? (
+                      <div className="text-center text-muted-foreground py-4">No experts assigned to this case</div>
+                    ) : (
+                      <ExpertList
+                        experts={caseExperts.filter(e => 
+                          e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          e.specialty.toLowerCase().includes(searchTerm.toLowerCase())
+                        )}
+                        selectedExpert={selectedExpert}
+                        onSelectExpert={handleSelectExpert}
+                      />
+                    )}
                   </div>
                   <div className="p-4 mt-auto">
                     <div className="flex justify-center">
@@ -243,8 +256,7 @@ const CaseView = () => {
                         senderId: m.senderId,
                         content: m.content,
                         timestamp: m.createdAt,
-                        expertId: m.senderId,
-                        caseId: caseData.id,
+                        isAnonymous: m.isAnonymous,
                       }))}
                       onSendMessage={handleSendGroupMessage}
                     />
