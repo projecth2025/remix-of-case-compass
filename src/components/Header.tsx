@@ -88,24 +88,26 @@ const Header = () => {
               {/* User Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="relative w-8 h-8 rounded-full overflow-hidden hover:ring-2 hover:ring-primary transition-all">
-                    {profile?.avatar_url ? (
-                      <img
-                        src={profile.avatar_url}
-                        alt={profile.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-t from-primary to-primary/60 relative">
-                          <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-primary/80 to-transparent rounded-b-full" />
-                          <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-2 h-2 bg-sky-300 rounded-full opacity-80" />
+                  <button className="relative w-8 h-8 hover:ring-2 hover:ring-primary transition-all">
+                    <div className="w-8 h-8 rounded-full overflow-hidden">
+                      {profile?.avatar_url ? (
+                        <img
+                          src={profile.avatar_url}
+                          alt={profile.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-t from-primary to-primary/60 relative">
+                            <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-primary/80 to-transparent rounded-b-full" />
+                            <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-2 h-2 bg-sky-300 rounded-full opacity-80" />
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                     {/* Show notification dot for unread invitations OR unread meetings */}
                     {(unreadCount > 0 || unreadMeetingsCount > 0) && (
-                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full" />
+                      <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-destructive rounded-full border-2 border-background" />
                     )}
                   </button>
                 </DropdownMenuTrigger>
