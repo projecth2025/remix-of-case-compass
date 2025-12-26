@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, Upload, User, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSupabaseData, FullCase } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreateMTBModalProps {
   open: boolean;
@@ -78,10 +79,33 @@ const CreateMTBModal = ({ open, onOpenChange, onCreateMTB }: CreateMTBModalProps
     }
   };
 
-  const handleEmailInputChange = (value: string) => {
+  const handleEmailInputChange = async (value: string) => {
     setEmailInput(value);
-    // No email suggestions for now - just allow typing
-    setEmailSuggestions([]);
+    
+    // Search for email suggestions from profiles when at least 2 characters are typed
+    if (value.trim().length >= 2) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('email')
+          .ilike('email', `%${value}%`)
+          .neq('id', profile?.id || '') // Exclude current user
+          .limit(5);
+        
+        if (!error && data) {
+          // Filter out already added emails
+          const suggestions = data
+            .map(p => p.email)
+            .filter(email => !expertEmails.includes(email));
+          setEmailSuggestions(suggestions);
+        }
+      } catch (err) {
+        console.error('Error fetching email suggestions:', err);
+        setEmailSuggestions([]);
+      }
+    } else {
+      setEmailSuggestions([]);
+    }
   };
 
   const addExpertEmail = (email: string) => {
