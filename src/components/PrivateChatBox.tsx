@@ -1,28 +1,30 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
-import { Expert, ChatMessage } from '@/lib/storage';
+import { Expert } from '@/lib/storage';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePrivateMessages } from '@/hooks/usePrivateMessages';
 
-interface ChatBoxProps {
+interface PrivateChatBoxProps {
   expert: Expert;
   caseId: string;
-  messages?: ChatMessage[];
-  onSendMessage?: (content: string) => void;
 }
 
-const ChatBox = ({ expert, caseId, messages = [], onSendMessage }: ChatBoxProps) => {
+const PrivateChatBox = ({ expert, caseId }: PrivateChatBoxProps) => {
   const { user } = useAuth();
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { messages, loading, sendMessage } = usePrivateMessages(expert.id, caseId);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = () => {
-    if (message.trim() && onSendMessage) {
-      onSendMessage(message.trim());
-      setMessage('');
+  const handleSend = async () => {
+    if (message.trim()) {
+      const success = await sendMessage(message.trim());
+      if (success) {
+        setMessage('');
+      }
     }
   };
 
@@ -50,28 +52,33 @@ const ChatBox = ({ expert, caseId, messages = [], onSendMessage }: ChatBoxProps)
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && (
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 hide-scrollbar">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+          </div>
+        ) : messages.length === 0 ? (
           <div className="text-center text-muted-foreground py-12">
             No messages yet. Start the conversation!
           </div>
-        )}
-        {messages.map(msg => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
-          >
+        ) : (
+          messages.map(msg => (
             <div
-              className={`max-w-[70%] px-4 py-2 rounded-2xl ${
-                msg.senderId === user?.id
-                  ? 'bg-primary text-primary-foreground rounded-br-md'
-                  : 'bg-muted text-foreground rounded-bl-md'
-              }`}
+              key={msg.id}
+              className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
             >
-              {msg.content}
+              <div
+                className={`max-w-[70%] px-4 py-2 rounded-2xl ${
+                  msg.senderId === user?.id
+                    ? 'bg-primary text-primary-foreground rounded-br-md'
+                    : 'bg-muted text-foreground rounded-bl-md'
+                }`}
+              >
+                {msg.content}
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -101,4 +108,4 @@ const ChatBox = ({ expert, caseId, messages = [], onSendMessage }: ChatBoxProps)
   );
 };
 
-export default ChatBox;
+export default PrivateChatBox;
