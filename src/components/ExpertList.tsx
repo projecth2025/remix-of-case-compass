@@ -1,4 +1,5 @@
 import { Expert } from '@/lib/storage';
+import { User } from 'lucide-react';
 
 interface ExpertListProps {
   experts: Expert[];
@@ -24,7 +25,7 @@ const ExpertList = ({ experts, selectedExpert, onSelectExpert, hasUnread }: Expe
             }`}
           >
             <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
                 {expert.avatar ? (
                   <img 
                     src={expert.avatar} 
@@ -32,10 +33,7 @@ const ExpertList = ({ experts, selectedExpert, onSelectExpert, hasUnread }: Expe
                     className="w-10 h-10 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-t from-primary to-primary/60 relative">
-                    <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-primary/80 to-transparent rounded-b-full" />
-                    <div className="absolute top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-sky-300 rounded-full opacity-80" />
-                  </div>
+                  <User className="w-5 h-5 text-muted-foreground" />
                 )}
               </div>
               {/* Unread indicator */}
