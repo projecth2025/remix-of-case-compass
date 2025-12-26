@@ -10,30 +10,33 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
       audit_logs: {
         Row: {
+          change_details: Json | null
           change_summary: string
-          edited_at: string
+          created_at: string
           edited_by: string
           entity_id: string
           entity_type: string
           id: string
         }
         Insert: {
+          change_details?: Json | null
           change_summary: string
-          edited_at?: string
+          created_at?: string
           edited_by: string
           entity_id: string
           entity_type: string
           id?: string
         }
         Update: {
+          change_details?: Json | null
           change_summary?: string
-          edited_at?: string
+          created_at?: string
           edited_by?: string
           entity_id?: string
           entity_type?: string
@@ -45,6 +48,7 @@ export type Database = {
         Row: {
           cancer_type: string | null
           case_name: string
+          clinical_summary: string | null
           created_at: string
           created_by: string
           id: string
@@ -54,6 +58,7 @@ export type Database = {
         Insert: {
           cancer_type?: string | null
           case_name: string
+          clinical_summary?: string | null
           created_at?: string
           created_by: string
           id?: string
@@ -63,6 +68,7 @@ export type Database = {
         Update: {
           cancer_type?: string | null
           case_name?: string
+          clinical_summary?: string | null
           created_at?: string
           created_by?: string
           id?: string
@@ -71,55 +77,31 @@ export type Database = {
         }
         Relationships: []
       }
-      chat_messages: {
-        Row: {
-          case_id: string
-          content: string
-          created_at: string
-          id: string
-          is_group_message: boolean
-          recipient_id: string | null
-          sender_id: string
-        }
-        Insert: {
-          case_id: string
-          content: string
-          created_at?: string
-          id?: string
-          is_group_message?: boolean
-          recipient_id?: string | null
-          sender_id: string
-        }
-        Update: {
-          case_id?: string
-          content?: string
-          created_at?: string
-          id?: string
-          is_group_message?: boolean
-          recipient_id?: string | null
-          sender_id?: string
-        }
-        Relationships: []
-      }
       document_edit_tracking: {
         Row: {
+          created_at: string
           document_id: string
           id: string
           last_edited_stage: string
+          last_verified_at: string | null
           requires_revisit: boolean
           updated_at: string
         }
         Insert: {
+          created_at?: string
           document_id: string
           id?: string
-          last_edited_stage: string
+          last_edited_stage?: string
+          last_verified_at?: string | null
           requires_revisit?: boolean
           updated_at?: string
         }
         Update: {
+          created_at?: string
           document_id?: string
           id?: string
           last_edited_stage?: string
+          last_verified_at?: string | null
           requires_revisit?: boolean
           updated_at?: string
         }
@@ -146,7 +128,7 @@ export type Database = {
           is_anonymized: boolean
           is_digitized: boolean
           last_modified_at: string
-          page_count: number | null
+          page_count: number
           storage_path: string | null
         }
         Insert: {
@@ -156,12 +138,12 @@ export type Database = {
           digitized_text?: Json | null
           file_category?: string | null
           file_name: string
-          file_type: string
+          file_type?: string
           id?: string
           is_anonymized?: boolean
           is_digitized?: boolean
           last_modified_at?: string
-          page_count?: number | null
+          page_count?: number
           storage_path?: string | null
         }
         Update: {
@@ -176,7 +158,7 @@ export type Database = {
           is_anonymized?: boolean
           is_digitized?: boolean
           last_modified_at?: string
-          page_count?: number | null
+          page_count?: number
           storage_path?: string | null
         }
         Relationships: [
@@ -189,43 +171,85 @@ export type Database = {
           },
         ]
       }
+      group_messages: {
+        Row: {
+          case_id: string | null
+          content: string
+          created_at: string
+          id: string
+          mtb_id: string
+          sender_id: string
+        }
+        Insert: {
+          case_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          mtb_id: string
+          sender_id: string
+        }
+        Update: {
+          case_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          mtb_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_messages_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_messages_mtb_id_fkey"
+            columns: ["mtb_id"]
+            isOneToOne: false
+            referencedRelation: "mtbs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           created_at: string
           id: string
-          invited_by_id: string
-          invited_by_name: string
-          invited_user_email: string
+          invited_by: string
+          invited_email: string
+          invited_user_id: string | null
           mtb_id: string
-          mtb_name: string
           read: boolean
+          responded_at: string | null
           status: string
         }
         Insert: {
           created_at?: string
           id?: string
-          invited_by_id: string
-          invited_by_name: string
-          invited_user_email: string
+          invited_by: string
+          invited_email: string
+          invited_user_id?: string | null
           mtb_id: string
-          mtb_name: string
           read?: boolean
+          responded_at?: string | null
           status?: string
         }
         Update: {
           created_at?: string
           id?: string
-          invited_by_id?: string
-          invited_by_name?: string
-          invited_user_email?: string
+          invited_by?: string
+          invited_email?: string
+          invited_user_id?: string | null
           mtb_id?: string
-          mtb_name?: string
           read?: boolean
+          responded_at?: string | null
           status?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_invitations_mtb"
+            foreignKeyName: "invitations_mtb_id_fkey"
             columns: ["mtb_id"]
             isOneToOne: false
             referencedRelation: "mtbs"
@@ -265,38 +289,91 @@ export type Database = {
           },
         ]
       }
+      meeting_responses: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          meeting_id: string
+          response: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          meeting_id: string
+          response?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          response?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_responses_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meetings: {
         Row: {
           created_at: string
           created_by: string
+          ended_at: string | null
           id: string
+          meeting_link: string | null
           mtb_id: string
           repeat_days: number[] | null
           schedule_type: string
           scheduled_date: string
           scheduled_time: string
+          started_at: string | null
+          status: string
+          title: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           created_by: string
+          ended_at?: string | null
           id?: string
+          meeting_link?: string | null
           mtb_id: string
           repeat_days?: number[] | null
           schedule_type?: string
           scheduled_date: string
           scheduled_time: string
+          started_at?: string | null
+          status?: string
+          title?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           created_by?: string
+          ended_at?: string | null
           id?: string
+          meeting_link?: string | null
           mtb_id?: string
           repeat_days?: number[] | null
           schedule_type?: string
           scheduled_date?: string
           scheduled_time?: string
+          started_at?: string | null
+          status?: string
+          title?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -312,23 +389,33 @@ export type Database = {
       mtb_cases: {
         Row: {
           added_at: string
+          added_by: string
           case_id: string
           id: string
           mtb_id: string
         }
         Insert: {
           added_at?: string
+          added_by: string
           case_id: string
           id?: string
           mtb_id: string
         }
         Update: {
           added_at?: string
+          added_by?: string
           case_id?: string
           id?: string
           mtb_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "mtb_cases_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "mtb_cases_mtb_id_fkey"
             columns: ["mtb_id"]
@@ -343,18 +430,21 @@ export type Database = {
           id: string
           joined_at: string
           mtb_id: string
+          role: string
           user_id: string
         }
         Insert: {
           id?: string
           joined_at?: string
           mtb_id: string
+          role?: string
           user_id: string
         }
         Update: {
           id?: string
           joined_at?: string
           mtb_id?: string
+          role?: string
           user_id?: string
         }
         Relationships: [
@@ -370,24 +460,30 @@ export type Database = {
       mtbs: {
         Row: {
           created_at: string
-          display_picture: string | null
+          description: string | null
+          dp_image: string | null
           id: string
           name: string
           owner_id: string
+          updated_at: string
         }
         Insert: {
           created_at?: string
-          display_picture?: string | null
+          description?: string | null
+          dp_image?: string | null
           id?: string
           name: string
           owner_id: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
-          display_picture?: string | null
+          description?: string | null
+          dp_image?: string | null
           id?: string
           name?: string
           owner_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -399,6 +495,7 @@ export type Database = {
           created_at: string
           id: string
           sex: string | null
+          updated_at: string
         }
         Insert: {
           age?: number | null
@@ -407,6 +504,7 @@ export type Database = {
           created_at?: string
           id?: string
           sex?: string | null
+          updated_at?: string
         }
         Update: {
           age?: number | null
@@ -415,6 +513,7 @@ export type Database = {
           created_at?: string
           id?: string
           sex?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -462,18 +561,50 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_mtb_member: {
+        Args: { _mtb_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_mtb_owner: {
         Args: { _mtb_id: string; _user_id: string }
         Returns: boolean
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "doctor" | "expert"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -600,6 +731,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "doctor", "expert"],
+    },
   },
 } as const
