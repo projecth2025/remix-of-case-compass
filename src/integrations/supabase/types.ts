@@ -177,6 +177,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          is_anonymous: boolean
           mtb_id: string
           sender_id: string
         }
@@ -185,6 +186,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          is_anonymous?: boolean
           mtb_id: string
           sender_id: string
         }
@@ -193,6 +195,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_anonymous?: boolean
           mtb_id?: string
           sender_id?: string
         }

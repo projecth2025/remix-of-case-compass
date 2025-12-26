@@ -11,6 +11,7 @@ export interface GroupMessage {
   senderAvatar: string | null;
   content: string;
   createdAt: string;
+  isAnonymous: boolean;
 }
 
 export function useGroupMessages(mtbId: string, caseId?: string) {
@@ -54,6 +55,7 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
           senderAvatar: (m.sender as any)?.avatar_url,
           content: m.content,
           createdAt: m.created_at,
+          isAnonymous: (m as any).is_anonymous || false,
         }))
       );
     } catch (err) {
@@ -63,7 +65,7 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
     }
   }, [user, mtbId, caseId]);
 
-  const sendMessage = async (content: string): Promise<boolean> => {
+  const sendMessage = async (content: string, isAnonymous: boolean = false): Promise<boolean> => {
     if (!user || !mtbId || !content.trim()) return false;
 
     try {
@@ -74,6 +76,7 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
           case_id: caseId || null,
           sender_id: user.id,
           content: content.trim(),
+          is_anonymous: isAnonymous,
         })
         .select(`
           *,
@@ -94,6 +97,7 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
           senderAvatar: (data.sender as any)?.avatar_url,
           content: data.content,
           createdAt: data.created_at,
+          isAnonymous: (data as any).is_anonymous || false,
         },
       ]);
 
@@ -144,6 +148,7 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
                   senderAvatar: (data.sender as any)?.avatar_url,
                   content: data.content,
                   createdAt: data.created_at,
+                  isAnonymous: (data as any).is_anonymous || false,
                 },
               ];
             });
