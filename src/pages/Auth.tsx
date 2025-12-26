@@ -33,7 +33,8 @@ const Auth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const emailResult = emailSchema.safeParse(email);
+    const trimmedEmail = email.trim();
+    const emailResult = emailSchema.safeParse(trimmedEmail);
     if (!emailResult.success) {
       toast.error(emailResult.error.errors[0].message);
       return;
@@ -68,7 +69,7 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { error } = await signIn(email, password);
+        const { error } = await signIn(trimmedEmail, password);
         if (error) {
           toast.error(error.message.includes('Invalid login credentials') ? 'Invalid email or password' : error.message);
         } else {
@@ -76,7 +77,7 @@ const Auth = () => {
           navigate('/home');
         }
       } else {
-        const { error } = await signUp(email, password, name, profession, phone, hospitalName);
+        const { error } = await signUp(trimmedEmail, password, name, profession, phone, hospitalName);
         if (error) {
           toast.error(error.message.includes('already registered') ? 'An account with this email already exists' : error.message);
         } else {
@@ -138,12 +139,12 @@ const Auth = () => {
                 <input type="text" value={hospitalName} onChange={e => setHospitalName(e.target.value)} className="vmtb-input" placeholder="Enter your hospital name" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Phone Number <span className="text-muted-foreground text-xs">(Optional)</span></label>
-                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="vmtb-input" placeholder="Enter your phone number" />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">Password <span className="text-destructive">*</span></label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="vmtb-input" placeholder="Create a password" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Phone Number <span className="text-muted-foreground text-xs">(Optional)</span></label>
+                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="vmtb-input" placeholder="Enter your phone number" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">Confirm Password <span className="text-destructive">*</span></label>
