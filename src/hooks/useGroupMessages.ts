@@ -19,6 +19,16 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Fetch sender profile for a message
+  const fetchSenderProfile = async (senderId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('name, avatar_url')
+      .eq('id', senderId)
+      .single();
+    return data;
+  };
+
   const fetchMessages = useCallback(async () => {
     if (!user || !mtbId) {
       setMessages([]);
@@ -30,10 +40,7 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
     try {
       let query = supabase
         .from('group_messages')
-        .select(`
-          *,
-          sender:profiles!group_messages_sender_id_fkey(name, avatar_url)
-        `)
+        .select('*')
         .eq('mtb_id', mtbId)
         .order('created_at', { ascending: true });
 
@@ -43,20 +50,41 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching group messages:', error);
+        throw error;
+      }
+
+      // Fetch all unique sender profiles
+      const senderIds = [...new Set((data || []).map(m => m.sender_id))];
+      const profilesMap = new Map<string, { name: string; avatar_url: string | null }>();
+
+      if (senderIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url')
+          .in('id', senderIds);
+
+        profiles?.forEach(p => {
+          profilesMap.set(p.id, { name: p.name, avatar_url: p.avatar_url });
+        });
+      }
 
       setMessages(
-        (data || []).map(m => ({
-          id: m.id,
-          mtbId: m.mtb_id,
-          caseId: m.case_id,
-          senderId: m.sender_id,
-          senderName: (m.sender as any)?.name || 'Unknown',
-          senderAvatar: (m.sender as any)?.avatar_url,
-          content: m.content,
-          createdAt: m.created_at,
-          isAnonymous: (m as any).is_anonymous || false,
-        }))
+        (data || []).map(m => {
+          const sender = profilesMap.get(m.sender_id);
+          return {
+            id: m.id,
+            mtbId: m.mtb_id,
+            caseId: m.case_id,
+            senderId: m.sender_id,
+            senderName: sender?.name || 'Unknown',
+            senderAvatar: sender?.avatar_url || null,
+            content: m.content,
+            createdAt: m.created_at,
+            isAnonymous: m.is_anonymous || false,
+          };
+        })
       );
     } catch (err) {
       console.error('Error fetching messages:', err);
@@ -66,9 +94,14 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
   }, [user, mtbId, caseId]);
 
   const sendMessage = async (content: string, isAnonymous: boolean = false): Promise<boolean> => {
-    if (!user || !mtbId || !content.trim()) return false;
+    if (!user || !mtbId || !content.trim()) {
+      console.log('sendMessage: missing required fields', { user: !!user, mtbId, content: content.trim() });
+      return false;
+    }
 
     try {
+      console.log('Sending group message:', { mtbId, caseId, content, isAnonymous });
+      
       const { data, error } = await supabase
         .from('group_messages')
         .insert({
@@ -78,28 +111,41 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
           content: content.trim(),
           is_anonymous: isAnonymous,
         })
-        .select(`
-          *,
-          sender:profiles!group_messages_sender_id_fkey(name, avatar_url)
-        `)
+        .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting group message:', error);
+        throw error;
+      }
 
-      setMessages(prev => [
-        ...prev,
-        {
-          id: data.id,
-          mtbId: data.mtb_id,
-          caseId: data.case_id,
-          senderId: data.sender_id,
-          senderName: (data.sender as any)?.name || 'Unknown',
-          senderAvatar: (data.sender as any)?.avatar_url,
-          content: data.content,
-          createdAt: data.created_at,
-          isAnonymous: (data as any).is_anonymous || false,
-        },
-      ]);
+      console.log('Group message sent successfully:', data);
+
+      // Fetch user profile for the new message
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name, avatar_url')
+        .eq('id', user.id)
+        .single();
+
+      // Add message to state immediately (optimistic update)
+      const newMessage: GroupMessage = {
+        id: data.id,
+        mtbId: data.mtb_id,
+        caseId: data.case_id,
+        senderId: data.sender_id,
+        senderName: profile?.name || 'You',
+        senderAvatar: profile?.avatar_url || null,
+        content: data.content,
+        createdAt: data.created_at,
+        isAnonymous: data.is_anonymous || false,
+      };
+
+      setMessages(prev => {
+        // Avoid duplicates
+        if (prev.some(m => m.id === newMessage.id)) return prev;
+        return [...prev, newMessage];
+      });
 
       return true;
     } catch (err) {
@@ -110,10 +156,12 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
 
   // Subscribe to realtime updates
   useEffect(() => {
-    if (!mtbId) return;
+    if (!mtbId || !user) return;
+
+    console.log('Setting up realtime subscription for mtb:', mtbId);
 
     const channel = supabase
-      .channel(`messages:${mtbId}`)
+      .channel(`group-messages-${mtbId}`)
       .on(
         'postgres_changes',
         {
@@ -123,44 +171,55 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
           filter: `mtb_id=eq.${mtbId}`,
         },
         async (payload) => {
-          // Fetch the complete message with sender info
-          const { data } = await supabase
-            .from('group_messages')
-            .select(`
-              *,
-              sender:profiles!group_messages_sender_id_fkey(name, avatar_url)
-            `)
-            .eq('id', payload.new.id)
+          console.log('Realtime: new group message received', payload);
+          const newMsg = payload.new as any;
+
+          // Skip if case_id doesn't match (when caseId is specified)
+          if (caseId && newMsg.case_id !== caseId) {
+            console.log('Skipping message - case_id mismatch');
+            return;
+          }
+
+          // Fetch sender profile
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('name, avatar_url')
+            .eq('id', newMsg.sender_id)
             .single();
 
-          if (data) {
-            setMessages(prev => {
-              // Avoid duplicates
-              if (prev.some(m => m.id === data.id)) return prev;
-              return [
-                ...prev,
-                {
-                  id: data.id,
-                  mtbId: data.mtb_id,
-                  caseId: data.case_id,
-                  senderId: data.sender_id,
-                  senderName: (data.sender as any)?.name || 'Unknown',
-                  senderAvatar: (data.sender as any)?.avatar_url,
-                  content: data.content,
-                  createdAt: data.created_at,
-                  isAnonymous: (data as any).is_anonymous || false,
-                },
-              ];
-            });
-          }
+          setMessages(prev => {
+            // Avoid duplicates
+            if (prev.some(m => m.id === newMsg.id)) {
+              console.log('Skipping duplicate message:', newMsg.id);
+              return prev;
+            }
+            console.log('Adding new message to state:', newMsg.id);
+            return [
+              ...prev,
+              {
+                id: newMsg.id,
+                mtbId: newMsg.mtb_id,
+                caseId: newMsg.case_id,
+                senderId: newMsg.sender_id,
+                senderName: profile?.name || 'Unknown',
+                senderAvatar: profile?.avatar_url || null,
+                content: newMsg.content,
+                createdAt: newMsg.created_at,
+                isAnonymous: newMsg.is_anonymous || false,
+              },
+            ];
+          });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up realtime subscription for mtb:', mtbId);
       supabase.removeChannel(channel);
     };
-  }, [mtbId]);
+  }, [mtbId, caseId, user]);
 
   useEffect(() => {
     fetchMessages();

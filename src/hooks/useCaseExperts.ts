@@ -122,7 +122,9 @@ export function useCaseExperts(caseId: string) {
         }
       });
 
-      setExperts(Array.from(expertMap.values()));
+      // Filter out the current user - you can't message yourself
+      const expertsArray = Array.from(expertMap.values()).filter(e => e.id !== user.id);
+      setExperts(expertsArray);
     } catch (err) {
       console.error('Error fetching case experts:', err);
     } finally {
