@@ -171,6 +171,52 @@ export type Database = {
           },
         ]
       }
+      group_chat_reads: {
+        Row: {
+          case_id: string | null
+          id: string
+          last_read_at: string
+          mtb_id: string
+          user_id: string
+        }
+        Insert: {
+          case_id?: string | null
+          id?: string
+          last_read_at?: string
+          mtb_id: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string | null
+          id?: string
+          last_read_at?: string
+          mtb_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_chat_reads_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_chat_reads_mtb_id_fkey"
+            columns: ["mtb_id"]
+            isOneToOne: false
+            referencedRelation: "mtbs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_chat_reads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_messages: {
         Row: {
           case_id: string | null
