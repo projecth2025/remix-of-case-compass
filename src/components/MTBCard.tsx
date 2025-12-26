@@ -5,13 +5,13 @@ import { useMeetings } from '@/hooks/useMeetings';
 import { format, parseISO } from 'date-fns';
 
 interface MTBCardProps {
-  mtb: MTB;
+  mtb: MTB & { expertsCount?: number; casesCount?: number };
   isDragging?: boolean;
-  expertCount?: number;
-  caseCount?: number;
 }
 
-const MTBCard = ({ mtb, isDragging, expertCount = 0, caseCount = 0 }: MTBCardProps) => {
+const MTBCard = ({ mtb, isDragging }: MTBCardProps) => {
+  const expertCount = mtb.expertsCount ?? 0;
+  const caseCount = mtb.casesCount ?? 0;
   const navigate = useNavigate();
   const { getUpcomingMeetingForMTB } = useMeetings();
   const [visitedNotifications, setVisitedNotifications] = useState<Set<string>>(new Set());
