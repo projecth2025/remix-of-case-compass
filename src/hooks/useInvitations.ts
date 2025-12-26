@@ -85,12 +85,12 @@ export function useInvitations() {
   const sendInvitations = async (
     mtbId: string,
     emails: string[]
-  ): Promise<{ success: string[]; failed: string[] }> => {
+  ): Promise<{ success: string[]; failed: string[]; notRegistered: string[] }> => {
     if (!user) {
-      return { success: [], failed: emails };
+      return { success: [], failed: emails, notRegistered: [] };
     }
 
-    const results = { success: [] as string[], failed: [] as string[] };
+    const results = { success: [] as string[], failed: [] as string[], notRegistered: [] as string[] };
 
     for (const email of emails) {
       try {
@@ -100,6 +100,12 @@ export function useInvitations() {
           .select('id')
           .eq('email', email)
           .maybeSingle();
+
+        // If user doesn't exist, add to notRegistered list
+        if (!existingProfile) {
+          results.notRegistered.push(email);
+          continue;
+        }
 
         // Check if already invited
         const { data: existingInvite } = await supabase
@@ -115,28 +121,26 @@ export function useInvitations() {
         }
 
         // Check if already a member
-        if (existingProfile) {
-          const { data: existingMember } = await supabase
-            .from('mtb_members')
-            .select('id')
-            .eq('mtb_id', mtbId)
-            .eq('user_id', existingProfile.id)
-            .maybeSingle();
+        const { data: existingMember } = await supabase
+          .from('mtb_members')
+          .select('id')
+          .eq('mtb_id', mtbId)
+          .eq('user_id', existingProfile.id)
+          .maybeSingle();
 
-          if (existingMember) {
-            results.failed.push(email);
-            continue;
-          }
+        if (existingMember) {
+          results.failed.push(email);
+          continue;
         }
 
-        // Create invitation
+        // Create invitation with the user's ID
         const { error } = await supabase
           .from('invitations')
           .insert({
             mtb_id: mtbId,
             invited_by: user.id,
             invited_email: email,
-            invited_user_id: existingProfile?.id || null,
+            invited_user_id: existingProfile.id,
           });
 
         if (error) {
@@ -150,10 +154,13 @@ export function useInvitations() {
     }
 
     if (results.success.length > 0) {
-      toast.success(`Invited ${results.success.length} user(s)`);
+      toast.success(`Invitation sent to ${results.success.length} user(s)`);
     }
-    if (results.failed.length > 0) {
-      toast.error(`Failed to invite ${results.failed.length} user(s)`);
+    if (results.notRegistered.length > 0) {
+      toast.error(`User(s) not registered: ${results.notRegistered.join(', ')}`);
+    }
+    if (results.failed.length > 0 && results.notRegistered.length === 0) {
+      toast.error(`Failed to invite ${results.failed.length} user(s) (already invited or member)`);
     }
 
     return results;

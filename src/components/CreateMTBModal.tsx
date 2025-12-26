@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { X, Upload, User, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useSupabaseData, FullCase } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface CreateMTBModalProps {
   open: boolean;
@@ -108,24 +109,45 @@ const CreateMTBModal = ({ open, onOpenChange, onCreateMTB }: CreateMTBModalProps
     }
   };
 
-  const addExpertEmail = (email: string) => {
-    if (email && !expertEmails.includes(email)) {
-      setExpertEmails([...expertEmails, email]);
+  const addExpertEmail = async (email: string) => {
+    if (!email || expertEmails.includes(email)) {
+      setEmailInput('');
+      setEmailSuggestions([]);
+      return;
     }
-    setEmailInput('');
-    setEmailSuggestions([]);
+
+    // Check if user exists in database
+    try {
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (!existingProfile) {
+        toast.error(`User "${email}" is not registered`);
+        return;
+      }
+
+      setExpertEmails([...expertEmails, email]);
+      setEmailInput('');
+      setEmailSuggestions([]);
+    } catch (err) {
+      console.error('Error checking email:', err);
+      toast.error('Failed to verify email');
+    }
   };
 
   const removeExpertEmail = (email: string) => {
     setExpertEmails(expertEmails.filter(e => e !== email));
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = async (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && emailInput.trim()) {
       e.preventDefault();
       // Add the email if it looks valid
       if (emailInput.includes('@')) {
-        addExpertEmail(emailInput.trim());
+        await addExpertEmail(emailInput.trim());
       }
     } else if (e.key === 'Backspace' && !emailInput && expertEmails.length > 0) {
       // Remove last chip on backspace
