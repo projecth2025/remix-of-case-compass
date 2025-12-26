@@ -42,7 +42,8 @@ const EditProfileModal = ({ open, onOpenChange }: EditProfileModalProps) => {
     const { error } = await updateProfile({
       name: name.trim(),
       phone: phone.trim() || null,
-      // Note: profession and hospital_name would require DB schema update
+      profession: profession.trim() || null,
+      hospital_name: hospitalName.trim() || null,
     });
 
     if (error) {
