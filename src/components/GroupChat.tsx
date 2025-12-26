@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Users, EyeOff, Eye } from 'lucide-react';
+import { Send, Users, EyeOff, Eye, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ interface GroupChatMessage {
   id: string;
   senderId: string;
   senderName: string;
+  senderAvatar?: string;
   content: string;
   timestamp: string;
   isAnonymous?: boolean;
@@ -87,20 +88,38 @@ const GroupChat = ({ caseId, messages, onSendMessage }: GroupChatProps) => {
           return (
             <div
               key={msg.id}
-              className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'}`}
+              className={`flex gap-2 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}
             >
-              <span className={`text-xs mb-1 flex items-center gap-1 ${msg.isAnonymous ? 'text-muted-foreground italic' : 'text-muted-foreground'}`}>
-                {msg.isAnonymous && <EyeOff className="w-3 h-3" />}
-                {participantLabel}
-              </span>
-              <div
-                className={`max-w-[70%] px-4 py-2 rounded-2xl ${
-                  isOwnMessage
-                    ? 'bg-primary text-primary-foreground rounded-br-md'
-                    : 'bg-muted text-foreground rounded-bl-md'
-                }`}
-              >
-                {msg.content}
+              {/* Avatar - hidden for own messages, show grey icon for anonymous */}
+              {!isOwnMessage && (
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {msg.isAnonymous ? (
+                    <User className="w-4 h-4 text-muted-foreground" />
+                  ) : msg.senderAvatar ? (
+                    <img 
+                      src={msg.senderAvatar} 
+                      alt={msg.senderName} 
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </div>
+              )}
+              <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'}`}>
+                <span className={`text-xs mb-1 flex items-center gap-1 ${msg.isAnonymous ? 'text-muted-foreground italic' : 'text-muted-foreground'}`}>
+                  {msg.isAnonymous && <EyeOff className="w-3 h-3" />}
+                  {participantLabel}
+                </span>
+                <div
+                  className={`max-w-[70%] px-4 py-2 rounded-2xl ${
+                    isOwnMessage
+                      ? 'bg-primary text-primary-foreground rounded-br-md'
+                      : 'bg-muted text-foreground rounded-bl-md'
+                  }`}
+                >
+                  {msg.content}
+                </div>
               </div>
             </div>
           );

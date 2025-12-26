@@ -270,6 +270,7 @@ const CaseView = () => {
                         id: m.id,
                         senderId: m.senderId,
                         senderName: m.senderName,
+                        senderAvatar: m.senderAvatar || undefined,
                         content: m.content,
                         timestamp: m.createdAt,
                         isAnonymous: m.isAnonymous,
