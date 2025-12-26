@@ -1,8 +1,8 @@
-import { Calendar, Clock, Video, RefreshCw } from 'lucide-react';
+import { Calendar, Clock, Video, RefreshCw, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { formatTime12Hour, formatMeetingDateDisplay, isJoinEnabled, getUpcomingMeetingsSorted } from '@/lib/meetingUtils';
+import { formatTime12Hour, formatMeetingDateDisplay, isJoinEnabled, getUpcomingMeetingsSorted, hasMeetingStarted } from '@/lib/meetingUtils';
 import type { Meeting } from '@/lib/storage';
 
 interface MeetingsModalProps {
@@ -11,6 +11,9 @@ interface MeetingsModalProps {
   meetings: Meeting[];
   loading?: boolean;
   onJoin?: (meeting: Meeting) => void;
+  onCancel?: (meetingId: string) => void;
+  onEndMeeting?: (meetingId: string) => void;
+  currentUserId?: string;
 }
 
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -21,6 +24,9 @@ const MeetingsModal = ({
   meetings,
   loading,
   onJoin,
+  onCancel,
+  onEndMeeting,
+  currentUserId,
 }: MeetingsModalProps) => {
   const formatRepeatDays = (days: number[] | null) => {
     if (!days || days.length === 0) return null;
@@ -64,7 +70,8 @@ const MeetingsModal = ({
             <div className="space-y-3">
               {upcomingMeetings.map((meeting) => {
                 const joinEnabled = isJoinEnabled(meeting);
-                
+                const meetingStarted = hasMeetingStarted(meeting);
+                const isCreator = currentUserId === meeting.createdBy;
                 
                 return (
                   <div
@@ -110,16 +117,42 @@ const MeetingsModal = ({
                         </div>
                       </div>
 
-                      <Button
-                        size="sm"
-                        onClick={() => onJoin?.(meeting)}
-                        variant={isJoinEnabled(meeting) ? "default" : "secondary"}
-                        disabled={!isJoinEnabled(meeting)}
-                        className="flex-shrink-0 gap-1.5"
-                      >
-                        <Video className="w-4 h-4" />
-                        Join
-                      </Button>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          onClick={() => onJoin?.(meeting)}
+                          variant={joinEnabled ? "default" : "secondary"}
+                          disabled={!joinEnabled}
+                          className="gap-1.5"
+                        >
+                          <Video className="w-4 h-4" />
+                          Join
+                        </Button>
+                        
+                        {isCreator && (
+                          meetingStarted ? (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => onEndMeeting?.(meeting.id)}
+                              className="gap-1.5"
+                            >
+                              <X className="w-4 h-4" />
+                              End Meet
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onCancel?.(meeting.id)}
+                              className="gap-1.5 text-destructive hover:text-destructive"
+                            >
+                              <X className="w-4 h-4" />
+                              Cancel
+                            </Button>
+                          )
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

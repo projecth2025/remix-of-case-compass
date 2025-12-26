@@ -15,6 +15,7 @@ import InvitationsModal, { Invitation } from './InvitationsModal';
 import MeetingsModal from './MeetingsModal';
 import { useMeetings } from '@/hooks/useMeetings';
 import { useInvitations } from '@/hooks/useInvitations';
+import { useAuth as getAuth } from '@/contexts/AuthContext';
 
 /**
  * Compact Header component with reduced height
@@ -26,8 +27,9 @@ const Header = () => {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [invitationsOpen, setInvitationsOpen] = useState(false);
   const [meetingsOpen, setMeetingsOpen] = useState(false);
-  const { meetings, unreadCount: unreadMeetingsCount, markNotificationsRead, loading: meetingsLoading, joinMeeting } = useMeetings();
+  const { meetings, unreadCount: unreadMeetingsCount, markNotificationsRead, loading: meetingsLoading, joinMeeting, deleteMeeting, endMeeting } = useMeetings();
   const { invitations, unreadCount, markInvitationsRead, acceptInvitation, declineInvitation } = useInvitations();
+  const { user } = useAuth();
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
@@ -176,6 +178,13 @@ const Header = () => {
         onJoin={(meeting) => {
           joinMeeting(meeting);
         }}
+        onCancel={(meetingId) => {
+          deleteMeeting(meetingId);
+        }}
+        onEndMeeting={(meetingId) => {
+          endMeeting(meetingId);
+        }}
+        currentUserId={user?.id}
       />
     </>
   );
