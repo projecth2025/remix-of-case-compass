@@ -26,23 +26,32 @@ export function usePrivateMessages(recipientId: string, caseId?: string) {
 
     setLoading(true);
     try {
-      // Get messages between the two users for this case
-      let query = supabase
+      console.log('Fetching private messages between', user.id, 'and', recipientId);
+      
+      // Get messages between the two users
+      // We need to fetch messages where:
+      // (sender = me AND recipient = them) OR (sender = them AND recipient = me)
+      const { data, error } = await supabase
         .from('private_messages')
         .select('*')
         .or(`and(sender_id.eq.${user.id},recipient_id.eq.${recipientId}),and(sender_id.eq.${recipientId},recipient_id.eq.${user.id})`)
         .order('created_at', { ascending: true });
 
-      if (caseId) {
-        query = query.eq('case_id', caseId);
+      if (error) {
+        console.error('Error fetching private messages:', error);
+        throw error;
       }
 
-      const { data, error } = await query;
+      // Filter by case_id if specified
+      let filteredData = data || [];
+      if (caseId) {
+        filteredData = filteredData.filter(m => m.case_id === caseId);
+      }
 
-      if (error) throw error;
+      console.log('Fetched private messages:', filteredData.length);
 
       setMessages(
-        (data || []).map(m => ({
+        filteredData.map(m => ({
           id: m.id,
           senderId: m.sender_id,
           recipientId: m.recipient_id,
@@ -60,9 +69,14 @@ export function usePrivateMessages(recipientId: string, caseId?: string) {
   }, [user, recipientId, caseId]);
 
   const sendMessage = async (content: string): Promise<boolean> => {
-    if (!user || !recipientId || !content.trim()) return false;
+    if (!user || !recipientId || !content.trim()) {
+      console.log('sendMessage: missing required fields', { user: !!user, recipientId, content: content.trim() });
+      return false;
+    }
 
     try {
+      console.log('Sending private message:', { recipientId, caseId, content });
+
       const { data, error } = await supabase
         .from('private_messages')
         .insert({
@@ -74,20 +88,29 @@ export function usePrivateMessages(recipientId: string, caseId?: string) {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting private message:', error);
+        throw error;
+      }
 
-      setMessages(prev => [
-        ...prev,
-        {
-          id: data.id,
-          senderId: data.sender_id,
-          recipientId: data.recipient_id,
-          caseId: data.case_id,
-          content: data.content,
-          createdAt: data.created_at,
-          readAt: data.read_at,
-        },
-      ]);
+      console.log('Private message sent successfully:', data);
+
+      // Add message to state immediately (optimistic update)
+      const newMessage: PrivateMessage = {
+        id: data.id,
+        senderId: data.sender_id,
+        recipientId: data.recipient_id,
+        caseId: data.case_id,
+        content: data.content,
+        createdAt: data.created_at,
+        readAt: data.read_at,
+      };
+
+      setMessages(prev => {
+        // Avoid duplicates
+        if (prev.some(m => m.id === newMessage.id)) return prev;
+        return [...prev, newMessage];
+      });
 
       return true;
     } catch (err) {
@@ -100,8 +123,13 @@ export function usePrivateMessages(recipientId: string, caseId?: string) {
   useEffect(() => {
     if (!user || !recipientId) return;
 
+    console.log('Setting up private message realtime subscription for conversation:', user.id, '<->', recipientId);
+
+    // Create a unique channel for this conversation
+    const channelName = `private-messages-${[user.id, recipientId].sort().join('-')}`;
+
     const channel = supabase
-      .channel(`private-messages:${user.id}:${recipientId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -110,38 +138,53 @@ export function usePrivateMessages(recipientId: string, caseId?: string) {
           table: 'private_messages',
         },
         (payload) => {
+          console.log('Realtime: new private message received', payload);
           const newMsg = payload.new as any;
+
           // Only add if this message is between us
           const isOurConversation =
             (newMsg.sender_id === user.id && newMsg.recipient_id === recipientId) ||
             (newMsg.sender_id === recipientId && newMsg.recipient_id === user.id);
-          
-          // Check case_id matches if specified
-          const caseMatches = !caseId || newMsg.case_id === caseId;
-          
-          if (isOurConversation && caseMatches) {
-            setMessages(prev => {
-              // Avoid duplicates
-              if (prev.some(m => m.id === newMsg.id)) return prev;
-              return [
-                ...prev,
-                {
-                  id: newMsg.id,
-                  senderId: newMsg.sender_id,
-                  recipientId: newMsg.recipient_id,
-                  caseId: newMsg.case_id,
-                  content: newMsg.content,
-                  createdAt: newMsg.created_at,
-                  readAt: newMsg.read_at,
-                },
-              ];
-            });
+
+          if (!isOurConversation) {
+            console.log('Skipping message - not our conversation');
+            return;
           }
+
+          // Check case_id matches if specified
+          if (caseId && newMsg.case_id !== caseId) {
+            console.log('Skipping message - case_id mismatch');
+            return;
+          }
+
+          setMessages(prev => {
+            // Avoid duplicates
+            if (prev.some(m => m.id === newMsg.id)) {
+              console.log('Skipping duplicate message:', newMsg.id);
+              return prev;
+            }
+            console.log('Adding new private message to state:', newMsg.id);
+            return [
+              ...prev,
+              {
+                id: newMsg.id,
+                senderId: newMsg.sender_id,
+                recipientId: newMsg.recipient_id,
+                caseId: newMsg.case_id,
+                content: newMsg.content,
+                createdAt: newMsg.created_at,
+                readAt: newMsg.read_at,
+              },
+            ];
+          });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Private message realtime subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up private message realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [user, recipientId, caseId]);
