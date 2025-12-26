@@ -13,12 +13,12 @@ const UpcomingMeetingCard = ({ onShowMore }: UpcomingMeetingCardProps) => {
   const today = startOfToday();
   const upcomingMeetings = meetings
     .filter((m) => {
-      const meetingDate = parseISO(m.scheduled_date);
+      const meetingDate = parseISO(m.scheduledDate);
       return isAfter(meetingDate, today) || format(meetingDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
     })
     .sort((a, b) => {
-      const dateA = new Date(`${a.scheduled_date}T${a.scheduled_time}`);
-      const dateB = new Date(`${b.scheduled_date}T${b.scheduled_time}`);
+      const dateA = new Date(`${a.scheduledDate}T${a.scheduledTime}`);
+      const dateB = new Date(`${b.scheduledDate}T${b.scheduledTime}`);
       return dateA.getTime() - dateB.getTime();
     });
 
@@ -43,15 +43,15 @@ const UpcomingMeetingCard = ({ onShowMore }: UpcomingMeetingCardProps) => {
       {nearestMeeting ? (
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
           <h4 className="font-semibold text-foreground text-base mb-3">
-            {nearestMeeting.mtb_name || 'MTB Meeting'}
+            {nearestMeeting.mtbName || 'MTB Meeting'}
           </h4>
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
             <Calendar className="w-4 h-4" />
-            <span>{formatMeetingDate(nearestMeeting.scheduled_date)}</span>
+            <span>{formatMeetingDate(nearestMeeting.scheduledDate)}</span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <Clock className="w-4 h-4" />
-            <span>{formatMeetingTime(nearestMeeting.scheduled_time)}</span>
+            <span>{formatMeetingTime(nearestMeeting.scheduledTime)}</span>
           </div>
         </div>
       ) : (

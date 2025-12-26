@@ -1,38 +1,26 @@
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { MTB } from '@/lib/storage';
-import { useApp } from '@/contexts/AppContext';
 import { useMeetings } from '@/hooks/useMeetings';
 import { format, parseISO } from 'date-fns';
 
 interface MTBCardProps {
   mtb: MTB;
   isDragging?: boolean;
+  expertCount?: number;
+  caseCount?: number;
 }
 
-const MTBCard = ({ mtb, isDragging }: MTBCardProps) => {
+const MTBCard = ({ mtb, isDragging, expertCount = 0, caseCount = 0 }: MTBCardProps) => {
   const navigate = useNavigate();
-  const { state } = useApp();
   const { getUpcomingMeetingForMTB } = useMeetings();
   const [visitedNotifications, setVisitedNotifications] = useState<Set<string>>(new Set());
-
-  // Calculate actual expert count for this MTB
-  const expertCount = state.experts.filter(e => mtb.experts.includes(e.id)).length;
-  
-  // Calculate actual case count for this MTB
-  const caseCount = state.cases.filter(c => mtb.cases.includes(c.id)).length;
 
   // Get earliest upcoming meeting for this MTB
   const upcomingMeeting = getUpcomingMeetingForMTB(mtb.id);
 
-  // Generate notifications: cases added to this MTB by other users
-  const notifications = state.cases
-    .filter(c => mtb.cases.includes(c.id) && c.ownerId !== state.loggedInUser?.id)
-    .map(c => ({
-      id: c.id,
-      text: `${c.caseName} shared by ${state.users.find(u => u.id === c.ownerId)?.name || 'Unknown'}`,
-      caseId: c.id,
-    }));
+  // Notifications simplified - just show empty for now since we don't have shared case tracking
+  const notifications: { id: string; text: string; caseId: string }[] = [];
 
   // Filter out visited notifications
   const unvisitedNotifications = notifications.filter(n => !visitedNotifications.has(n.id));
@@ -103,7 +91,7 @@ const MTBCard = ({ mtb, isDragging }: MTBCardProps) => {
             onClick={handleMeetingClick}
             className="w-full text-left text-sm text-primary hover:underline transition-colors mb-2"
           >
-            Next meeting: {formatMeetingDate(upcomingMeeting.scheduled_date)} • {formatMeetingTime(upcomingMeeting.scheduled_time)}
+            Next meeting: {formatMeetingDate(upcomingMeeting.scheduledDate)} • {formatMeetingTime(upcomingMeeting.scheduledTime)}
           </button>
         )}
         

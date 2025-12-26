@@ -3,7 +3,7 @@ import { X, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { useApp } from '@/contexts/AppContext';
+import { useSupabaseData, FullCase } from '@/hooks/useSupabaseData';
 
 interface AddCaseToMTBModalProps {
   open: boolean;
@@ -18,13 +18,13 @@ interface AddCaseToMTBModalProps {
  * - Shows case name, patient name, and cancer type in suggestions
  */
 const AddCaseToMTBModal = ({ open, onOpenChange, onAddCases }: AddCaseToMTBModalProps) => {
-  const { state } = useApp();
+  const { cases } = useSupabaseData();
   const [selectedCases, setSelectedCases] = useState<string[]>([]);
   const [caseInput, setCaseInput] = useState('');
-  const [caseSuggestions, setCaseSuggestions] = useState<typeof state.cases>([]);
+  const [caseSuggestions, setCaseSuggestions] = useState<FullCase[]>([]);
 
-  // Get user's cases only
-  const userCases = state.cases.filter(c => c.ownerId === state.loggedInUser?.id);
+  // Get user's cases
+  const userCases = cases;
 
   const handleCaseInputChange = (value: string) => {
     setCaseInput(value);

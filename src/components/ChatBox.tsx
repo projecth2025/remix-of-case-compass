@@ -1,28 +1,27 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
 import { Expert, ChatMessage } from '@/lib/storage';
-import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ChatBoxProps {
   expert: Expert;
   caseId: string;
+  messages?: ChatMessage[];
+  onSendMessage?: (content: string) => void;
 }
 
-const ChatBox = ({ expert, caseId }: ChatBoxProps) => {
-  const { state, sendMessage } = useApp();
+const ChatBox = ({ expert, caseId, messages = [], onSendMessage }: ChatBoxProps) => {
+  const { user } = useAuth();
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const chatKey = `${caseId}-${expert.id}`;
-  const messages = state.chats[chatKey] || [];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSend = () => {
-    if (message.trim()) {
-      sendMessage(caseId, expert.id, message.trim());
+    if (message.trim() && onSendMessage) {
+      onSendMessage(message.trim());
       setMessage('');
     }
   };
@@ -60,11 +59,11 @@ const ChatBox = ({ expert, caseId }: ChatBoxProps) => {
         {messages.map(msg => (
           <div
             key={msg.id}
-            className={`flex ${msg.senderId === state.loggedInUser?.id ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
           >
             <div
               className={`max-w-[70%] px-4 py-2 rounded-2xl ${
-                msg.senderId === state.loggedInUser?.id
+                msg.senderId === user?.id
                   ? 'bg-primary text-primary-foreground rounded-br-md'
                   : 'bg-muted text-foreground rounded-bl-md'
               }`}

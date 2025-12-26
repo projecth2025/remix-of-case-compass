@@ -27,7 +27,12 @@ const FilePreview = () => {
   const { fileIndex } = useParams();
   const navigate = useNavigate();
   const { 
-    state, 
+    uploadedFiles,
+    isEditMode,
+    editingCaseId,
+    currentPatient,
+    originalFiles,
+    editedFileIds,
     updateFileExtractedData, 
     markFileAsEdited,
     markDigitizedVisited,
@@ -37,7 +42,7 @@ const FilePreview = () => {
     clearUploadedFiles,
   } = useApp();
   const { createPatientAndCase, modifyCase: supabaseModifyCase } = useSupabaseData();
-  const mode = state.isEditMode ? 'MODIFY' : 'CREATE';
+  const mode = isEditMode ? 'MODIFY' : 'CREATE';
   const [jsonText, setJsonText] = useState('');
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showModifyModal, setShowModifyModal] = useState(false);
@@ -46,8 +51,8 @@ const FilePreview = () => {
   const [triggerShake, setTriggerShake] = useState(false);
 
   const currentIndex = parseInt(fileIndex || '0', 10);
-  const currentFile = state.uploadedFiles[currentIndex];
-  const totalFiles = state.uploadedFiles.length;
+  const currentFile = uploadedFiles[currentIndex];
+  const totalFiles = uploadedFiles.length;
   const isLastFile = currentIndex === totalFiles - 1;
   const isFirstFile = currentIndex === 0;
 
@@ -57,7 +62,7 @@ const FilePreview = () => {
       console.debug('[FilePreview] visited-state', reason, {
         currentIndex,
         currentFile: currentFile?.name,
-        files: state.uploadedFiles.map(f => ({
+        files: uploadedFiles.map(f => ({
           name: f.name,
           digitizedVisited: f.digitizedVisited,
           anonymizedVisited: f.anonymizedVisited,
@@ -99,7 +104,7 @@ const FilePreview = () => {
   const saveCurrentFile = () => {
     if (currentFile) {
       // Check if extracted data has changed (for edit mode)
-      const originalFile = state.originalFiles.find(f => f.id === currentFile.id);
+      const originalFile = originalFiles.find(f => f.id === currentFile.id);
       const originalData = originalFile?.extractedData ? JSON.stringify(originalFile.extractedData) : '{}';
       const newData = jsonText;
       
@@ -167,7 +172,7 @@ const FilePreview = () => {
   const handleCreateCaseClick = () => {
     // Use functional update pattern to mark current file as visited and validate atomically
     // This ensures we validate against the latest state, not a stale closure
-    const updatedFiles = state.uploadedFiles.map((f, i) =>
+    const updatedFiles = uploadedFiles.map((f, i) =>
       i === currentIndex 
         ? { ...f, digitizedVisited: true, dirty: false, lastVisitedAt: Date.now() }
         : f
@@ -196,10 +201,10 @@ const FilePreview = () => {
 
   const handleCreateCase = async () => {
     console.log('=== [handleCreateCase] START ===');
-    console.log('[handleCreateCase] Current patient:', state.currentPatient);
-    console.log('[handleCreateCase] Uploaded files:', state.uploadedFiles.length);
+    console.log('[handleCreateCase] Current patient:', currentPatient);
+    console.log('[handleCreateCase] Uploaded files:', uploadedFiles.length);
 
-    if (!state.currentPatient) {
+    if (!currentPatient) {
       console.error('[handleCreateCase] No patient data found');
       toast.error('No patient data found');
       throw new Error('No patient data found');
@@ -210,8 +215,8 @@ const FilePreview = () => {
     saveCurrentFile();
     
     console.log('[handleCreateCase] Calling createPatientAndCase...');
-    console.log('[handleCreateCase] Patient:', state.currentPatient);
-    console.log('[handleCreateCase] Files:', state.uploadedFiles.map(f => ({ 
+    console.log('[handleCreateCase] Patient:', currentPatient);
+    console.log('[handleCreateCase] Files:', uploadedFiles.map(f => ({ 
       name: f.name, 
       hasDataURL: !!f.dataURL,
       hasAnonymizedDataURL: !!f.anonymizedDataURL,
@@ -221,8 +226,8 @@ const FilePreview = () => {
     
     // Save to Supabase - this is the ONLY time we persist data
     const newCase = await createPatientAndCase(
-      state.currentPatient,
-      state.uploadedFiles
+      currentPatient,
+      uploadedFiles
     );
 
     console.log('[handleCreateCase] createPatientAndCase result:', newCase ? newCase.id : 'null');
@@ -250,7 +255,7 @@ const FilePreview = () => {
   const handleModifyCaseClick = () => {
     // Use functional update pattern to mark current file as visited and validate atomically
     // This ensures we validate against the latest state, not a stale closure
-    const updatedFiles = state.uploadedFiles.map((f, i) =>
+    const updatedFiles = uploadedFiles.map((f, i) =>
       i === currentIndex 
         ? { ...f, digitizedVisited: true, dirty: false, lastVisitedAt: Date.now() }
         : f
@@ -278,7 +283,7 @@ const FilePreview = () => {
   };
 
   const handleModifyCase = async () => {
-    if (!state.currentPatient || !state.editingCaseId) {
+    if (!currentPatient || !editingCaseId) {
       toast.error('No case data found');
       throw new Error('No case data found');
     }
@@ -287,11 +292,11 @@ const FilePreview = () => {
     
     // Save to Supabase - this is the ONLY time we persist modifications
     const success = await supabaseModifyCase(
-      state.editingCaseId,
-      state.currentPatient,
-      state.uploadedFiles,
-      state.editedFileIds,
-      state.originalFiles
+      editingCaseId,
+      currentPatient,
+      uploadedFiles,
+      editedFileIds,
+      originalFiles
     );
 
     if (success) {
@@ -316,17 +321,17 @@ const FilePreview = () => {
     
     // Navigate to anonymization if missing anon, otherwise digitization
     if (missingAnon.length > 0) {
-      const firstMissing = state.uploadedFiles.find(f => missingAnon.includes(f.name));
+      const firstMissing = uploadedFiles.find(f => missingAnon.includes(f.name));
       if (firstMissing) {
-        const index = state.uploadedFiles.findIndex(f => f.id === firstMissing.id);
+        const index = uploadedFiles.findIndex(f => f.id === firstMissing.id);
         if (index >= 0) {
           navigate(`/upload/anonymize/${index}`);
         }
       }
     } else if (missingDigit.length > 0) {
-      const firstMissing = state.uploadedFiles.find(f => missingDigit.includes(f.name));
+      const firstMissing = uploadedFiles.find(f => missingDigit.includes(f.name));
       if (firstMissing) {
-        const index = state.uploadedFiles.findIndex(f => f.id === firstMissing.id);
+        const index = uploadedFiles.findIndex(f => f.id === firstMissing.id);
         if (index >= 0) {
           navigate(`/upload/preview/${index}`);
         }
@@ -334,7 +339,7 @@ const FilePreview = () => {
     }
   };
 
-  if (!state.currentPatient || !currentFile) {
+  if (!currentPatient || !currentFile) {
     navigate('/home');
     return null;
   }
@@ -366,7 +371,7 @@ const FilePreview = () => {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="center" className="max-h-60 overflow-y-auto">
-                {state.uploadedFiles.map((file, index) => (
+                {uploadedFiles.map((file, index) => (
                   <DropdownMenuItem
                     key={file.id}
                     onClick={() => handleFileSelect(index)}

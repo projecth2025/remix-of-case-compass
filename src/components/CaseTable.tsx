@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Case, formatDate } from '@/lib/storage';
 import ConfirmModal from '@/components/ConfirmModal';
-import { useApp } from '@/contexts/AppContext';
 import type { FullCase } from '@/hooks/useSupabaseData';
 
 interface CaseTableProps {
@@ -42,7 +41,6 @@ const CaseTable = ({
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [caseToDelete, setCaseToDelete] = useState<Case | FullCase | null>(null);
   const navigate = useNavigate();
-  const { deleteCase } = useApp();
 
   const filteredCases = cases.filter(c =>
     c.patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -67,11 +65,9 @@ const CaseTable = ({
 
   const handleConfirmDelete = async () => {
     if (caseToDelete) {
-      // Use Supabase delete if provided, otherwise fall back to local delete
+      // Use Supabase delete if provided
       if (onDeleteCase) {
         await onDeleteCase(caseToDelete.id);
-      } else if (deleteCase) {
-        deleteCase(caseToDelete.id);
       }
     }
     setDeleteModalOpen(false);

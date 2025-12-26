@@ -4,7 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useApp } from '@/contexts/AppContext';
+import { useSupabaseData, FullCase } from '@/hooks/useSupabaseData';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CreateMTBModalProps {
   open: boolean;
@@ -25,7 +26,8 @@ interface CreateMTBModalProps {
  * - Multi-select cases
  */
 const CreateMTBModal = ({ open, onOpenChange, onCreateMTB }: CreateMTBModalProps) => {
-  const { state } = useApp();
+  const { cases } = useSupabaseData();
+  const { profile } = useAuth();
   const [mtbName, setMtbName] = useState('');
   const [dpImage, setDpImage] = useState<string | null>(null);
   const [expertEmails, setExpertEmails] = useState<string[]>([]);
@@ -33,11 +35,11 @@ const CreateMTBModal = ({ open, onOpenChange, onCreateMTB }: CreateMTBModalProps
   const [emailSuggestions, setEmailSuggestions] = useState<string[]>([]);
   const [selectedCases, setSelectedCases] = useState<string[]>([]);
   const [caseInput, setCaseInput] = useState('');
-  const [caseSuggestions, setCaseSuggestions] = useState<typeof state.cases>([]);
+  const [caseSuggestions, setCaseSuggestions] = useState<FullCase[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get all user cases for suggestions
-  const userCases = state.cases.filter(c => c.ownerId === state.loggedInUser?.id);
+  const userCases = cases;
 
   const handleCaseInputChange = (value: string) => {
     setCaseInput(value);
@@ -76,21 +78,10 @@ const CreateMTBModal = ({ open, onOpenChange, onCreateMTB }: CreateMTBModalProps
     }
   };
 
-  // Get all user emails for suggestions (from registered users)
-  const allUserEmails = state.users?.map(u => u.email) || [];
-
   const handleEmailInputChange = (value: string) => {
     setEmailInput(value);
-    if (value.trim()) {
-      const suggestions = allUserEmails.filter(
-        email =>
-          email.toLowerCase().includes(value.toLowerCase()) &&
-          !expertEmails.includes(email)
-      );
-      setEmailSuggestions(suggestions);
-    } else {
-      setEmailSuggestions([]);
-    }
+    // No email suggestions for now - just allow typing
+    setEmailSuggestions([]);
   };
 
   const addExpertEmail = (email: string) => {
@@ -130,8 +121,8 @@ const CreateMTBModal = ({ open, onOpenChange, onCreateMTB }: CreateMTBModalProps
   };
 
   const useProfilePicture = () => {
-    if (state.loggedInUser?.profilePicture) {
-      setDpImage(state.loggedInUser.profilePicture);
+    if (profile?.avatar_url) {
+      setDpImage(profile.avatar_url);
     }
   };
 
@@ -210,7 +201,7 @@ const CreateMTBModal = ({ open, onOpenChange, onCreateMTB }: CreateMTBModalProps
                   <Upload className="w-4 h-4 mr-1" />
                   Upload Image
                 </Button>
-                {state.loggedInUser?.profilePicture && (
+                {profile?.avatar_url && (
                   <Button
                     type="button"
                     variant="ghost"

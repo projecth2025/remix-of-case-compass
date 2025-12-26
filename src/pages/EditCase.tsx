@@ -17,7 +17,7 @@ const EditCase = () => {
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
   
-  const { state, setupEditMode } = useApp();
+  const { setupEditMode } = useApp();
   const { loadCaseForEditing, checkCaseNameExists } = useSupabaseData();
   
   // Form state

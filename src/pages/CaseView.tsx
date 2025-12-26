@@ -7,9 +7,9 @@ import ZoomablePreview from '@/components/ZoomablePreview';
 import ExpertList from '@/components/ExpertList';
 import ChatBox from '@/components/ChatBox';
 import GroupChat from '@/components/GroupChat';
-import { useApp } from '@/contexts/AppContext';
 import { useSupabaseData, FullCase } from '@/hooks/useSupabaseData';
-import { Expert, UploadedFile } from '@/lib/storage';
+import { useGroupMessages } from '@/hooks/useGroupMessages';
+import { Expert, UploadedFile, ChatMessage } from '@/lib/storage';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -30,8 +30,8 @@ const tabs = [
 const CaseView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { state, sendGroupMessage } = useApp();
   const { loadCaseForEditing, loading } = useSupabaseData();
+  const { sendMessage: sendGroupChatMessage } = useGroupMessages(id || '');
   const [activeTab, setActiveTab] = useState('profile');
   const [selectedReport, setSelectedReport] = useState<UploadedFile | null>(null);
   const [selectedExpert, setSelectedExpert] = useState<Expert | null>(null);
@@ -94,8 +94,8 @@ const CaseView = () => {
     return null;
   }
 
-  const groupChatKey = `${caseData.id}-group`;
-  const groupMessages = state.chats[groupChatKey] || [];
+  // Use the group messages hook
+  const { messages: groupMessages, sendMessage: sendGroupMessage } = useGroupMessages(caseData.id);
 
   const handleSelectExpert = (expert: Expert) => {
     setSelectedExpert(expert);
@@ -108,7 +108,7 @@ const CaseView = () => {
   };
 
   const handleSendGroupMessage = (content: string) => {
-    sendGroupMessage(caseData.id, content);
+    sendGroupMessage(content);
   };
 
   const handleDownloadReport = () => {
@@ -242,7 +242,12 @@ const CaseView = () => {
                   {chatMode === 'group' ? (
                     <GroupChat
                       caseId={caseData.id}
-                      messages={groupMessages}
+                      messages={groupMessages.map(m => ({
+                        id: m.id,
+                        senderId: m.senderId,
+                        content: m.content,
+                        timestamp: m.createdAt,
+                      }))}
                       onSendMessage={handleSendGroupMessage}
                     />
                   ) : selectedExpert ? (

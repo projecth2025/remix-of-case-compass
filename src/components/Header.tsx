@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useApp } from '@/contexts/AppContext';
 import { LogOut, Edit, Mail, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -15,6 +14,7 @@ import EditProfileModal from './EditProfileModal';
 import InvitationsModal, { Invitation } from './InvitationsModal';
 import MeetingsModal from './MeetingsModal';
 import { useMeetings } from '@/hooks/useMeetings';
+import { useInvitations } from '@/hooks/useInvitations';
 
 /**
  * Compact Header component with reduced height
@@ -23,18 +23,15 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
-  const { state, markInvitationsRead, acceptInvitation, declineInvitation } = useApp();
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [invitationsOpen, setInvitationsOpen] = useState(false);
   const [meetingsOpen, setMeetingsOpen] = useState(false);
   const { notifications, meetings, unreadCount: unreadMeetingsCount, markNotificationsRead, loading: meetingsLoading } = useMeetings();
+  const { invitations, unreadCount, markAsRead, acceptInvitation, declineInvitation } = useInvitations();
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
-  const userInvitations = state.invitations.filter(
-    inv => inv.invited_user_email === profile?.email && inv.status === 'pending'
-  );
-  const unreadCount = userInvitations.filter(inv => !inv.read).length;
+  const userInvitations = invitations.filter(inv => inv.status === 'pending');
 
   const handleLogout = async () => {
     await signOut();
@@ -44,21 +41,15 @@ const Header = () => {
 
   const handleOpenInvitations = () => {
     setInvitationsOpen(true);
-    if (markInvitationsRead) {
-      markInvitationsRead();
-    }
+    markAsRead();
   };
 
-  const handleAcceptInvitation = (invitation: Invitation) => {
-    if (acceptInvitation) {
-      acceptInvitation(invitation);
-    }
+  const handleAcceptInvitation = async (invitation: Invitation) => {
+    await acceptInvitation(invitation.id);
   };
 
-  const handleDeclineInvitation = (invitation: Invitation) => {
-    if (declineInvitation) {
-      declineInvitation(invitation);
-    }
+  const handleDeclineInvitation = async (invitation: Invitation) => {
+    await declineInvitation(invitation.id);
   };
 
   const navItems = [
@@ -182,7 +173,7 @@ const Header = () => {
         loading={meetingsLoading}
         onJoin={(meeting) => {
           // Placeholder for join meeting functionality
-          toast.info(`Joining meeting for ${meeting.mtb_name || 'MTB'}`);
+          toast.info(`Joining meeting for ${meeting.mtbName || 'MTB'}`);
         }}
       />
     </>
