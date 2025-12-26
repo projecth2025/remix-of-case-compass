@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -18,16 +18,7 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Fetch sender profile for a message
-  const fetchSenderProfile = async (senderId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('name, avatar_url')
-      .eq('id', senderId)
-      .single();
-    return data;
-  };
+  const lastFetchRef = useRef<string>('');
 
   const fetchMessages = useCallback(async () => {
     if (!user || !mtbId) {
@@ -36,7 +27,15 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
       return;
     }
 
-    setLoading(true);
+    // Create a key to track if params changed
+    const fetchKey = `${mtbId}-${caseId || 'none'}`;
+    
+    // Only show loading on first fetch or when params change
+    if (lastFetchRef.current !== fetchKey) {
+      setLoading(true);
+      lastFetchRef.current = fetchKey;
+    }
+
     try {
       let query = supabase
         .from('group_messages')
@@ -70,6 +69,8 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
         });
       }
 
+      console.log('Fetched group messages:', (data || []).length, 'for mtb:', mtbId);
+
       setMessages(
         (data || []).map(m => {
           const sender = profilesMap.get(m.sender_id);
@@ -100,7 +101,7 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
     }
 
     try {
-      console.log('Sending group message:', { mtbId, caseId, content, isAnonymous });
+      console.log('Sending group message to mtb:', mtbId);
       
       const { data, error } = await supabase
         .from('group_messages')
@@ -119,7 +120,7 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
         throw error;
       }
 
-      console.log('Group message sent successfully:', data);
+      console.log('Group message sent successfully:', data.id);
 
       // Fetch user profile for the new message
       const { data: profile } = await supabase
@@ -171,7 +172,7 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
           filter: `mtb_id=eq.${mtbId}`,
         },
         async (payload) => {
-          console.log('Realtime: new group message received', payload);
+          console.log('Realtime: new group message received', payload.new);
           const newMsg = payload.new as any;
 
           // Skip if case_id doesn't match (when caseId is specified)
@@ -221,9 +222,21 @@ export function useGroupMessages(mtbId: string, caseId?: string) {
     };
   }, [mtbId, caseId, user]);
 
+  // Fetch messages on mount and when params change
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);
+
+  // Polling fallback - refetch every 5 seconds as backup for realtime
+  useEffect(() => {
+    if (!user || !mtbId) return;
+
+    const interval = setInterval(() => {
+      fetchMessages();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [user, mtbId, fetchMessages]);
 
   return {
     messages,
