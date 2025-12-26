@@ -97,33 +97,34 @@ const MTBSidebar = ({
         {/* Divider */}
         <div className="my-4 mx-3 border-t border-border" />
 
-        {/* Actions - Only visible for owners */}
-        {isOwner && (
-          <div className="space-y-1 px-2">
-            <button
-              onClick={onAddCase}
-              className={cn(
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
-                'text-muted-foreground hover:bg-primary/10 hover:text-primary'
-              )}
-              title={isCollapsed ? 'Add Case' : undefined}
-            >
-              <Plus className="w-5 h-5 flex-shrink-0" />
-              {!isCollapsed && <span className="text-sm font-medium">Add Case</span>}
-            </button>
+        {/* Actions - Add Case and Schedule Meet visible for all members */}
+        <div className="space-y-1 px-2">
+          <button
+            onClick={onAddCase}
+            className={cn(
+              'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
+              'text-muted-foreground hover:bg-primary/10 hover:text-primary'
+            )}
+            title={isCollapsed ? 'Add Case' : undefined}
+          >
+            <Plus className="w-5 h-5 flex-shrink-0" />
+            {!isCollapsed && <span className="text-sm font-medium">Add Case</span>}
+          </button>
 
-            <button
-              onClick={onScheduleMeet}
-              className={cn(
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
-                'text-muted-foreground hover:bg-primary/10 hover:text-primary'
-              )}
-              title={isCollapsed ? 'Schedule a Meet' : undefined}
-            >
-              <Video className="w-5 h-5 flex-shrink-0" />
-              {!isCollapsed && <span className="text-sm font-medium">Schedule a Meet</span>}
-            </button>
+          <button
+            onClick={onScheduleMeet}
+            className={cn(
+              'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
+              'text-muted-foreground hover:bg-primary/10 hover:text-primary'
+            )}
+            title={isCollapsed ? 'Schedule a Meet' : undefined}
+          >
+            <Video className="w-5 h-5 flex-shrink-0" />
+            {!isCollapsed && <span className="text-sm font-medium">Schedule a Meet</span>}
+          </button>
 
+          {/* Add Experts - Only visible for owners */}
+          {isOwner && (
             <button
               onClick={onAddExpert}
               className={cn(
@@ -135,8 +136,8 @@ const MTBSidebar = ({
               <UserPlus className="w-5 h-5 flex-shrink-0" />
               {!isCollapsed && <span className="text-sm font-medium">Add Experts</span>}
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Spacer to push back button to bottom */}
         <div className="flex-1" />
