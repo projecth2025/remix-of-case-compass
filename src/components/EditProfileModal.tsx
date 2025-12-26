@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { User } from 'lucide-react';
+import { User, Camera, Loader2 } from 'lucide-react';
 import ProfessionSelect from '@/components/ProfessionSelect';
+import { supabase } from '@/integrations/supabase/client';
 
 interface EditProfileModalProps {
   open: boolean;
@@ -12,25 +13,86 @@ interface EditProfileModalProps {
 
 /**
  * EditProfileModal allows users to update their profile information.
- * Uses Supabase for profile updates.
+ * Uses Supabase for profile updates including avatar upload.
  */
 const EditProfileModal = ({ open, onOpenChange }: EditProfileModalProps) => {
-  const { profile, updateProfile } = useAuth();
+  const { profile, updateProfile, user } = useAuth();
   const [name, setName] = useState('');
   const [profession, setProfession] = useState('');
   const [hospitalName, setHospitalName] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (profile) {
       setName(profile.name || '');
       setPhone(profile.phone || '');
-      // These fields would come from extended profile if available
-      setProfession((profile as any).profession || '');
-      setHospitalName((profile as any).hospital_name || '');
+      setProfession(profile.profession || '');
+      setHospitalName(profile.hospital_name || '');
+      setAvatarUrl(profile.avatar_url);
     }
   }, [profile]);
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size should be less than 5MB');
+      return;
+    }
+
+    setUploadingAvatar(true);
+
+    try {
+      // Create unique file path
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar.${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Add cache buster to force refresh
+      const urlWithCacheBuster = `${publicUrl}?t=${Date.now()}`;
+      setAvatarUrl(urlWithCacheBuster);
+
+      toast.success('Avatar uploaded successfully');
+    } catch (error: any) {
+      console.error('Avatar upload error:', error);
+      toast.error('Failed to upload avatar');
+    } finally {
+      setUploadingAvatar(false);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -44,6 +106,7 @@ const EditProfileModal = ({ open, onOpenChange }: EditProfileModalProps) => {
       phone: phone.trim() || null,
       profession: profession.trim() || null,
       hospital_name: hospitalName.trim() || null,
+      avatar_url: avatarUrl,
     });
 
     if (error) {
@@ -62,16 +125,38 @@ const EditProfileModal = ({ open, onOpenChange }: EditProfileModalProps) => {
           <DialogTitle>Edit Profile</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          {/* Profile Picture Preview */}
+          {/* Profile Picture Preview with Upload */}
           <div className="flex justify-center">
-            <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+            <div 
+              className="relative w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden cursor-pointer group"
+              onClick={handleAvatarClick}
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <User size={32} className="text-primary" />
+                <User size={40} className="text-primary" />
               )}
+              
+              {/* Overlay on hover */}
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {uploadingAvatar ? (
+                  <Loader2 size={24} className="text-white animate-spin" />
+                ) : (
+                  <Camera size={24} className="text-white" />
+                )}
+              </div>
+              
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
             </div>
           </div>
+          <p className="text-center text-xs text-muted-foreground">Click to change profile picture</p>
 
           {/* Name */}
           <div>
@@ -144,7 +229,7 @@ const EditProfileModal = ({ open, onOpenChange }: EditProfileModalProps) => {
           >
             Cancel
           </button>
-          <button onClick={handleSave} disabled={loading} className="vmtb-btn-primary">
+          <button onClick={handleSave} disabled={loading || uploadingAvatar} className="vmtb-btn-primary">
             {loading ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
