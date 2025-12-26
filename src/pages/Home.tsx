@@ -87,15 +87,8 @@ const Home = () => {
             <div className="mt-[220px]">
               <p className="home-discussion-title">Upcoming Discussion</p>
               <div className="home-discussion-card">
-                <UpcomingMeetingCardContent meetings={meetings} onJoin={handleJoinMeeting} />
+                <UpcomingMeetingCardContent meetings={meetings} onJoin={handleJoinMeeting} onShowMore={handleShowMoreMeetings} />
               </div>
-              <button
-                type="button"
-                onClick={handleShowMoreMeetings}
-                className="mt-3 text-primary hover:underline text-sm font-medium"
-              >
-                Show more
-              </button>
             </div>
           </div>
 
@@ -196,7 +189,7 @@ const Home = () => {
 };
 
 // Inline component for meeting card content (without the outer wrapper)
-const UpcomingMeetingCardContent = ({ meetings, onJoin }: { meetings: Meeting[], onJoin: (meeting: Meeting) => void }) => {
+const UpcomingMeetingCardContent = ({ meetings, onJoin, onShowMore }: { meetings: Meeting[], onJoin: (meeting: Meeting) => void, onShowMore: () => void }) => {
   // Use the utility function for consistent sorting
   const upcomingMeetings = getUpcomingMeetingsSorted(meetings);
   const nearestMeeting = upcomingMeetings[0];
@@ -205,29 +198,38 @@ const UpcomingMeetingCardContent = ({ meetings, onJoin }: { meetings: Meeting[],
   return (
     <div>
       {nearestMeeting ? (
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h4 className="font-semibold text-foreground text-base mb-2">
-              {nearestMeeting.mtb_name || 'MTB Meeting'}
-            </h4>
-            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-              <span>{formatMeetingDateDisplay(nearestMeeting.scheduled_date)}</span>
+        <>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h4 className="font-semibold text-foreground text-base mb-2">
+                {nearestMeeting.mtb_name || 'MTB Meeting'}
+              </h4>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                <span>{formatMeetingDateDisplay(nearestMeeting.scheduled_date)}</span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <span>{formatTime12Hour(nearestMeeting.scheduled_time)}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <span>{formatTime12Hour(nearestMeeting.scheduled_time)}</span>
-            </div>
+            <Button
+              size="sm"
+              variant={joinEnabled ? "default" : "secondary"}
+              onClick={() => onJoin(nearestMeeting)}
+              disabled={!joinEnabled}
+              className="gap-1.5 flex-shrink-0"
+            >
+              <Video className="w-4 h-4" />
+              Join
+            </Button>
           </div>
-          <Button
-            size="sm"
-            variant={joinEnabled ? "default" : "secondary"}
-            onClick={() => onJoin(nearestMeeting)}
-            disabled={!joinEnabled}
-            className="gap-1.5 flex-shrink-0"
+          <button
+            type="button"
+            onClick={onShowMore}
+            className="mt-3 text-primary hover:underline text-sm font-medium"
           >
-            <Video className="w-4 h-4" />
-            Join
-          </Button>
-        </div>
+            Show more
+          </button>
+        </>
       ) : (
         <div className="flex flex-col items-center justify-center py-2 text-center">
           <svg className="w-10 h-10 text-muted-foreground/40 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

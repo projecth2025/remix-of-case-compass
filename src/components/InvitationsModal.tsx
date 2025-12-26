@@ -46,17 +46,17 @@ const InvitationsModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="sm:max-w-3xl p-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
+          <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
             <Mail className="w-5 h-5" />
             Invitations
           </DialogTitle>
         </DialogHeader>
 
-        <div className="py-4">
+        <div className="px-6 py-4 max-h-[75vh] overflow-y-auto hide-scrollbar flex-1">
           {pendingInvitations.length > 0 ? (
-            <div className="space-y-3 max-h-[400px] overflow-y-auto">
+            <div className="space-y-3">
               {pendingInvitations.map(invitation => (
                 <div
                   key={invitation.id}
@@ -99,11 +99,21 @@ const InvitationsModal = ({
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
+            <div className="text-center py-12">
               <Mail className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
               <p className="text-muted-foreground">No pending invitations</p>
             </div>
           )}
+        </div>
+
+        <div className="px-6 py-4 border-t border-border bg-muted/20">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="w-full"
+          >
+            Close
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
