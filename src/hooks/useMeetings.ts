@@ -368,6 +368,49 @@ export function useMeetings() {
     fetchMeetings();
   }, [fetchMeetings]);
 
+  // Real-time subscription for meeting updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('meetings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'meetings',
+        },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            // Meeting was deleted/cancelled
+            setMeetings(prev => prev.filter(m => m.id !== payload.old.id));
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = payload.new;
+            // If meeting is ended or cancelled, remove from list
+            if (updated.status === 'ended' || updated.status === 'cancelled') {
+              setMeetings(prev => prev.filter(m => m.id !== updated.id));
+            } else {
+              // Update the meeting in the list
+              setMeetings(prev => prev.map(m => 
+                m.id === updated.id 
+                  ? { ...m, status: updated.status, meetingLink: updated.meeting_link }
+                  : m
+              ));
+            }
+          } else if (payload.eventType === 'INSERT') {
+            // New meeting created - refetch to get full data with MTB name
+            fetchMeetings();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchMeetings]);
+
   // Mark notifications as read
   const markNotificationsRead = async () => {
     if (!user) return;
