@@ -13,7 +13,7 @@ import { useMeetings } from '@/hooks/useMeetings';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { formatTime12Hour, formatMeetingDateShort, isJoinEnabled } from '@/lib/meetingUtils';
+import { formatTime12Hour, formatMeetingDateShort, isJoinEnabled, hasMeetingStarted } from '@/lib/meetingUtils';
 import type { Meeting } from '@/lib/storage';
 
 /**
@@ -31,7 +31,7 @@ const MTBDetail = () => {
   // Hooks
   const { mtbs, loading: mtbsLoading, getMTBMembers, getMTBCases, addCasesToMTB, removeCaseFromMTB, removeMemberFromMTB } = useMTBs();
   const { sendInvitations } = useInvitations();
-  const { meetings, createMeeting, deleteMeeting, joinMeeting, getMeetingsForMTB } = useMeetings();
+  const { meetings, createMeeting, deleteMeeting, endMeeting, joinMeeting, getMeetingsForMTB } = useMeetings();
   
   // Get section from query params
   const sectionFromUrl = searchParams.get('section');
@@ -467,17 +467,30 @@ const MTBDetail = () => {
                             className="gap-1.5"
                           >
                             <Video className="w-4 h-4" />
-                            {meeting.status === 'in_progress' ? 'Rejoin' : 'Join'}
+                            Join
                           </Button>
                           {(isOwner || meeting.createdBy === user?.id) && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleCancelMeetingClick(meeting)}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              Cancel
-                            </Button>
+                            hasMeetingStarted(meeting) ? (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => endMeeting(meeting.id)}
+                                className="gap-1.5"
+                              >
+                                <X className="w-4 h-4" />
+                                End Meet
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleCancelMeetingClick(meeting)}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <X className="w-4 h-4" />
+                                Cancel
+                              </Button>
+                            )
                           )}
                         </div>
                       </div>
