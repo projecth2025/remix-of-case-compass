@@ -31,7 +31,7 @@ const MTBDetail = () => {
   // Hooks
   const { mtbs, loading: mtbsLoading, getMTBMembers, getMTBCases, addCasesToMTB, removeCaseFromMTB, removeMemberFromMTB } = useMTBs();
   const { sendInvitations } = useInvitations();
-  const { createMeeting, deleteMeeting, joinMeeting, getMeetingsForMTB } = useMeetings();
+  const { meetings, createMeeting, deleteMeeting, joinMeeting, getMeetingsForMTB } = useMeetings();
   
   // Get section from query params
   const sectionFromUrl = searchParams.get('section');
@@ -64,14 +64,22 @@ const MTBDetail = () => {
   // Get MTB from state
   const mtb = id ? mtbs.find(m => m.id === id) : null;
   
-  // Load MTB data
+  // Load MTB data - only trigger on id change to avoid infinite loop
   useEffect(() => {
     if (id) {
       getMTBMembers(id).then(setMtbMembers);
       getMTBCases(id).then(setMtbCases);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+  
+  // Update meetings when meetings state changes
+  useEffect(() => {
+    if (id) {
       setMtbMeetings(getMeetingsForMTB(id));
     }
-  }, [id, getMTBMembers, getMTBCases, getMeetingsForMTB]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, meetings]);
 
   // Show loading state while MTBs are being fetched
   if (mtbsLoading) {
