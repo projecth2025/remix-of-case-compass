@@ -1,18 +1,10 @@
 import { X, Check, Mail } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import type { Invitation } from '@/hooks/useInvitations';
 
-export interface Invitation {
-  id: string;
-  mtb_id: string;
-  mtb_name: string;
-  invited_by_id: string;
-  invited_by_name: string;
-  invited_user_email: string;
-  status: 'pending' | 'accepted' | 'declined';
-  read: boolean;
-  created_at: string;
-}
+// Re-export the type for convenience
+export type { Invitation } from '@/hooks/useInvitations';
 
 interface InvitationsModalProps {
   open: boolean;
@@ -65,13 +57,13 @@ const InvitationsModal = ({
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <h4 className="font-medium text-foreground">
-                        {invitation.mtb_name}
+                        {invitation.mtbName}
                       </h4>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Invited by: {invitation.invited_by_name}
+                        Invited by: {invitation.invitedByName}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {formatDate(invitation.created_at)}
+                        {formatDate(invitation.createdAt)}
                       </p>
                     </div>
                   </div>

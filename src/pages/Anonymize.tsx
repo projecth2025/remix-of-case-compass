@@ -38,7 +38,8 @@ const Anonymize = () => {
   const { fileIndex } = useParams();
   const navigate = useNavigate();
   const { 
-    uploadedFiles, 
+    uploadedFiles,
+    currentPatient,
     isEditMode,
     updateAnonymizedImage, 
     updateAnonymizedPDFPages, 
@@ -84,7 +85,7 @@ const Anonymize = () => {
       console.debug('[Anonymize] visited-state', reason, {
         currentIndex,
         currentFile: currentFile?.name,
-        files: state.uploadedFiles.map(f => ({
+        files: uploadedFiles.map(f => ({
           name: f.name,
           anonymizedVisited: f.anonymizedVisited,
           dirty: f.dirty,
@@ -620,7 +621,7 @@ const Anonymize = () => {
   const handleGoToDigitization = () => {
     // Use functional update to mark current file as visited and validate atomically
     // This ensures we validate against the latest state, not a stale closure
-    const updatedFiles = state.uploadedFiles.map((f, i) =>
+    const updatedFiles = uploadedFiles.map((f, i) =>
       i === currentIndex 
         ? { ...f, anonymizedVisited: true, dirty: false, lastVisitedAt: Date.now() }
         : f
@@ -650,9 +651,9 @@ const Anonymize = () => {
     setShowIncompleteModal(false);
     const missingFiles = getMissingAnonymization();
     if (missingFiles.length > 0) {
-      const firstMissing = state.uploadedFiles.find(f => missingFiles.includes(f.name));
+      const firstMissing = uploadedFiles.find(f => missingFiles.includes(f.name));
       if (firstMissing) {
-        const index = state.uploadedFiles.findIndex(f => f.id === firstMissing.id);
+        const index = uploadedFiles.findIndex(f => f.id === firstMissing.id);
         if (index >= 0) {
           navigate(`/upload/anonymize/${index}`);
         }
@@ -675,7 +676,7 @@ const Anonymize = () => {
     navigate('/upload/review');
   };
 
-  if (!state.currentPatient || !currentFile) {
+  if (!currentPatient || !currentFile) {
     navigate('/home');
     return null;
   }
@@ -710,7 +711,7 @@ const Anonymize = () => {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="center" className="max-h-60 overflow-y-auto">
-                {state.uploadedFiles.map((file, index) => (
+                {uploadedFiles.map((file, index) => (
                   <DropdownMenuItem
                     key={file.id}
                     onClick={() => handleFileSelect(index)}
