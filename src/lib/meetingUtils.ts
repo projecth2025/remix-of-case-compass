@@ -1,4 +1,4 @@
-import { format, parseISO, isToday, isTomorrow, differenceInMinutes, isAfter, startOfToday } from 'date-fns';
+import { format, parseISO, isToday, isTomorrow, differenceInMinutes, isAfter, startOfToday, isBefore } from 'date-fns';
 import type { Meeting } from '@/lib/storage';
 
 /**
@@ -43,6 +43,15 @@ export const isJoinEnabled = (meeting: Meeting): boolean => {
   
   // Meeting is joinable if it's scheduled or in progress
   return true;
+};
+
+/**
+ * Check if meeting has started (scheduled time has passed)
+ */
+export const hasMeetingStarted = (meeting: Meeting): boolean => {
+  const now = new Date();
+  const meetingDateTime = getMeetingDateTime(meeting);
+  return isBefore(meetingDateTime, now) || meetingDateTime.getTime() === now.getTime();
 };
 
 /**
