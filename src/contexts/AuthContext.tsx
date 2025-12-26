@@ -136,12 +136,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateProfile = async (updates: Partial<Profile>): Promise<{ error: Error | null }> => {
     if (!user) return { error: new Error('Not authenticated') };
 
-    const { error } = await supabase
+    console.log('Updating profile with:', updates);
+    
+    const { data, error } = await supabase
       .from('profiles')
       .update(updates)
-      .eq('id', user.id);
+      .eq('id', user.id)
+      .select();
+
+    console.log('Update result:', { data, error });
 
     if (error) {
+      console.error('Profile update error:', error);
       return { error };
     }
 
