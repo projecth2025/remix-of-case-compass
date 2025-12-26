@@ -260,25 +260,41 @@ export function useMTBs() {
 
   const getMTBMembers = async (mtbId: string): Promise<MTBMember[]> => {
     try {
-      const { data, error } = await supabase
+      // First get the members
+      const { data: membersData, error: membersError } = await supabase
         .from('mtb_members')
-        .select(`
-          *,
-          user:profiles!mtb_members_user_id_fkey(name, email, avatar_url, profession)
-        `)
+        .select('*')
         .eq('mtb_id', mtbId);
 
-      if (error) throw error;
+      if (membersError) throw membersError;
 
-      return (data || []).map(m => ({
+      if (!membersData || membersData.length === 0) {
+        return [];
+      }
+
+      // Then get the profiles for those members
+      const userIds = membersData.map(m => m.user_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name, email, avatar_url, profession')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      const profileMap: Record<string, any> = {};
+      (profilesData || []).forEach(p => {
+        profileMap[p.id] = p;
+      });
+
+      return membersData.map(m => ({
         id: m.id,
         mtbId: m.mtb_id,
         userId: m.user_id,
         role: m.role as 'owner' | 'expert' | 'member',
-        userName: (m.user as any)?.name || 'Unknown',
-        userEmail: (m.user as any)?.email || '',
-        userAvatar: (m.user as any)?.avatar_url,
-        userProfession: (m.user as any)?.profession,
+        userName: profileMap[m.user_id]?.name || 'Unknown',
+        userEmail: profileMap[m.user_id]?.email || '',
+        userAvatar: profileMap[m.user_id]?.avatar_url,
+        userProfession: profileMap[m.user_id]?.profession,
         joinedAt: m.joined_at,
       }));
     } catch (err) {
@@ -289,23 +305,51 @@ export function useMTBs() {
 
   const getMTBCases = async (mtbId: string): Promise<MTBCase[]> => {
     try {
-      const { data, error } = await supabase
+      // First get the mtb_cases
+      const { data: mtbCasesData, error: mtbCasesError } = await supabase
         .from('mtb_cases')
-        .select(`
-          *,
-          case:cases(id, case_name, cancer_type),
-          patient:patients!inner(anonymized_name)
-        `)
+        .select('*')
         .eq('mtb_id', mtbId);
 
-      if (error) throw error;
+      if (mtbCasesError) throw mtbCasesError;
 
-      return (data || []).map(c => ({
+      if (!mtbCasesData || mtbCasesData.length === 0) {
+        return [];
+      }
+
+      // Get case details
+      const caseIds = mtbCasesData.map(c => c.case_id);
+      const { data: casesData, error: casesError } = await supabase
+        .from('cases')
+        .select('id, case_name, cancer_type')
+        .in('id', caseIds);
+
+      if (casesError) throw casesError;
+
+      // Get patient details for each case
+      const { data: patientsData, error: patientsError } = await supabase
+        .from('patients')
+        .select('case_id, anonymized_name')
+        .in('case_id', caseIds);
+
+      if (patientsError) throw patientsError;
+
+      const caseMap: Record<string, any> = {};
+      (casesData || []).forEach(c => {
+        caseMap[c.id] = c;
+      });
+
+      const patientMap: Record<string, string> = {};
+      (patientsData || []).forEach(p => {
+        patientMap[p.case_id] = p.anonymized_name;
+      });
+
+      return mtbCasesData.map(c => ({
         id: c.id,
-        caseId: (c.case as any)?.id,
-        caseName: (c.case as any)?.case_name || '',
-        cancerType: (c.case as any)?.cancer_type,
-        patientName: (c.patient as any)?.anonymized_name || '',
+        caseId: c.case_id,
+        caseName: caseMap[c.case_id]?.case_name || '',
+        cancerType: caseMap[c.case_id]?.cancer_type,
+        patientName: patientMap[c.case_id] || '',
         addedAt: c.added_at,
       }));
     } catch (err) {
