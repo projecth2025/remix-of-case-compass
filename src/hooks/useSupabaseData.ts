@@ -659,12 +659,11 @@ export function useSupabaseData() {
       if (!user) return null;
 
       try {
-        // Fetch case
+        // Fetch case - RLS policies handle access control (own cases + MTB shared cases)
         const { data: caseData, error: caseError } = await supabase
           .from('cases')
           .select('*')
           .eq('id', caseId)
-          .eq('created_by', user.id)
           .single();
 
         if (caseError) throw caseError;
