@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogOut, Edit, Mail, Video } from 'lucide-react';
+import { LogOut, Edit, Mail, Video, User } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -99,11 +99,8 @@ const Header = () => {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
-                          <div className="w-6 h-6 rounded-full bg-gradient-to-t from-primary to-primary/60 relative">
-                            <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-primary/80 to-transparent rounded-b-full" />
-                            <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-2 h-2 bg-sky-300 rounded-full opacity-80" />
-                          </div>
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <User className="w-4 h-4 text-muted-foreground" />
                         </div>
                       )}
                     </div>
