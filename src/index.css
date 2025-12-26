@@ -1,152 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* VMTB Design System - Medical-grade clinical aesthetic */
-/* Clean, trustworthy, professional - inspired by modern healthcare platforms */
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
 @layer base {
   :root {
-    /* Core palette - Clinical blue with warm accents */
-    --background: 210 20% 98%;
-    --foreground: 220 25% 10%;
+    --background: 0 0% 100%;
+    --foreground: 220 20% 10%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 25% 10%;
+    --card: 210 20% 98%;
+    --card-foreground: 220 20% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 25% 10%;
+    --popover-foreground: 220 20% 10%;
 
-    /* Primary - Medical trust blue */
-    --primary: 210 100% 45%;
+    --primary: 160 84% 39%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 210 100% 60%;
 
-    /* Secondary - Subtle clinical gray */
-    --secondary: 210 15% 93%;
-    --secondary-foreground: 220 25% 20%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 220 20% 20%;
 
-    /* Muted - Quiet backgrounds */
-    --muted: 210 15% 95%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 220 10% 46%;
 
-    /* Accent - Teal for actions */
-    --accent: 175 70% 40%;
+    --accent: 160 84% 39%;
     --accent-foreground: 0 0% 100%;
 
-    /* Success - Verified green */
-    --success: 152 70% 40%;
-    --success-foreground: 0 0% 100%;
-    --success-light: 152 50% 95%;
-
-    /* Warning - Attention amber */
-    --warning: 38 95% 50%;
-    --warning-foreground: 38 95% 15%;
-    --warning-light: 38 80% 95%;
-
-    /* Destructive - Error red */
-    --destructive: 0 75% 55%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-light: 0 60% 97%;
 
-    /* Border & Input */
-    --border: 210 20% 88%;
-    --input: 210 20% 88%;
-    --ring: 210 100% 45%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 160 84% 39%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
-    /* Medical semantic colors */
-    --verified: 152 70% 40%;
-    --unverified: 38 95% 50%;
-    --critical: 0 75% 55%;
-    --pending: 210 100% 45%;
+    /* Custom vMTB tokens */
+    --vmtb-green: 160 84% 39%;
+    --vmtb-green-light: 160 60% 95%;
+    --vmtb-gradient: linear-gradient(135deg, hsl(160, 84%, 39%) 0%, hsl(180, 70%, 45%) 100%);
+    --vmtb-card-shadow: 0 2px 8px -2px hsl(220 20% 10% / 0.08);
+    --vmtb-card-shadow-hover: 0 8px 24px -4px hsl(220 20% 10% / 0.12);
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(210 100% 45%), hsl(195 100% 50%));
-    --gradient-hero: linear-gradient(180deg, hsl(210 20% 98%) 0%, hsl(210 30% 94%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 20% 99%) 100%);
-    --gradient-sidebar: linear-gradient(180deg, hsl(220 25% 12%) 0%, hsl(220 25% 8%) 100%);
-
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(220 25% 10% / 0.03);
-    --shadow-md: 0 4px 6px -1px hsl(220 25% 10% / 0.05), 0 2px 4px -2px hsl(220 25% 10% / 0.03);
-    --shadow-lg: 0 10px 15px -3px hsl(220 25% 10% / 0.08), 0 4px 6px -4px hsl(220 25% 10% / 0.03);
-    --shadow-glow: 0 0 20px hsl(210 100% 45% / 0.15);
-
-    /* Sidebar */
-    --sidebar-background: 220 25% 10%;
-    --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 210 100% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 25% 18%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 220 20% 18%;
-    --sidebar-ring: 210 100% 55%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 160 84% 39%;
   }
 
   .dark {
-    --background: 220 25% 7%;
-    --foreground: 210 20% 95%;
+    --background: 220 20% 6%;
+    --foreground: 210 20% 98%;
 
-    --card: 220 25% 10%;
-    --card-foreground: 210 20% 95%;
+    --card: 220 20% 10%;
+    --card-foreground: 210 20% 98%;
 
-    --popover: 220 25% 10%;
-    --popover-foreground: 210 20% 95%;
+    --popover: 220 20% 8%;
+    --popover-foreground: 210 20% 98%;
 
-    --primary: 210 100% 55%;
-    --primary-foreground: 220 25% 5%;
-    --primary-glow: 210 100% 65%;
+    --primary: 160 70% 45%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 20% 18%;
-    --secondary-foreground: 210 20% 90%;
+    --secondary: 220 20% 15%;
+    --secondary-foreground: 210 20% 98%;
 
     --muted: 220 20% 15%;
-    --muted-foreground: 210 15% 55%;
+    --muted-foreground: 220 10% 60%;
 
-    --accent: 175 70% 45%;
-    --accent-foreground: 220 25% 5%;
+    --accent: 160 70% 45%;
+    --accent-foreground: 0 0% 100%;
 
-    --success: 152 65% 45%;
-    --success-light: 152 30% 15%;
-
-    --warning: 38 90% 55%;
-    --warning-light: 38 40% 15%;
-
-    --destructive: 0 70% 50%;
-    --destructive-light: 0 40% 15%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
 
     --border: 220 20% 18%;
     --input: 220 20% 18%;
-    --ring: 210 100% 55%;
+    --ring: 160 70% 45%;
 
-    --verified: 152 65% 45%;
-    --unverified: 38 90% 55%;
-    --critical: 0 70% 50%;
-    --pending: 210 100% 55%;
-
-    --gradient-primary: linear-gradient(135deg, hsl(210 100% 55%), hsl(195 100% 55%));
-    --gradient-hero: linear-gradient(180deg, hsl(220 25% 7%) 0%, hsl(220 25% 5%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(220 25% 10%) 0%, hsl(220 25% 8%) 100%);
-    --gradient-sidebar: linear-gradient(180deg, hsl(220 25% 5%) 0%, hsl(220 25% 3%) 100%);
-
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -2px hsl(0 0% 0% / 0.2);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.4), 0 4px 6px -4px hsl(0 0% 0% / 0.2);
-    --shadow-glow: 0 0 20px hsl(210 100% 55% / 0.2);
-
-    --sidebar-background: 220 25% 5%;
-    --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 210 100% 55%;
+    --sidebar-background: 220 20% 8%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 160 70% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 25% 12%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 220 20% 12%;
-    --sidebar-ring: 210 100% 55%;
+    --sidebar-accent: 220 20% 15%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 220 20% 18%;
+    --sidebar-ring: 160 70% 45%;
   }
+
+  /* Dark mode scrollbar styling */
+  .dark {
+    scrollbar-color: hsl(160, 50%, 35%) hsl(220, 20%, 15%);
+  }
+
+  .dark ::-webkit-scrollbar-track {
+    background: hsl(220, 20%, 15%);
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: hsl(160, 50%, 35%);
+    border-color: hsl(220, 20%, 15%);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: hsl(160, 55%, 45%);
+  }
+
+  .dark ::-webkit-scrollbar-corner {
+    background: hsl(220, 20%, 15%);
+  }
+
 }
 
 @layer base {
@@ -154,144 +121,408 @@
     @apply border-border;
   }
 
+  html,
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  }
-
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    @apply bg-muted/50;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/20 rounded-full;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/30;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    overscroll-behavior: none;
   }
 }
 
 @layer components {
-  /* Step indicator styles */
-  .step-indicator {
-    @apply relative flex items-center justify-center w-10 h-10 rounded-full font-semibold text-sm transition-all duration-300;
+  .vmtb-card {
+    @apply bg-card rounded-xl border border-border shadow-sm;
+    box-shadow: var(--vmtb-card-shadow);
   }
 
-  .step-indicator-active {
-    @apply bg-primary text-primary-foreground shadow-md;
-    box-shadow: var(--shadow-glow);
+  .vmtb-card-hover {
+    @apply transition-shadow duration-200;
   }
 
-  .step-indicator-complete {
-    @apply bg-success text-success-foreground;
+  .vmtb-card-hover:hover {
+    box-shadow: var(--vmtb-card-shadow-hover);
   }
 
-  .step-indicator-pending {
-    @apply bg-muted text-muted-foreground;
+  .vmtb-link {
+    @apply text-primary hover:underline cursor-pointer font-medium;
   }
 
-  /* Verification tick */
-  .verification-tick {
-    @apply inline-flex items-center justify-center w-5 h-5 rounded-full bg-success text-success-foreground;
+  .vmtb-input {
+    @apply w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all;
   }
 
-  .verification-pending {
-    @apply inline-flex items-center justify-center w-5 h-5 rounded-full bg-warning/20 text-warning;
+  .vmtb-btn-primary {
+    @apply px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
-  /* Medical card styles */
-  .medical-card {
-    @apply bg-card rounded-xl border border-border/50 p-6 transition-all duration-200;
-    background: var(--gradient-card);
-    box-shadow: var(--shadow-sm);
+  .vmtb-btn-secondary {
+    @apply px-6 py-3 bg-secondary text-secondary-foreground rounded-lg font-semibold hover:bg-secondary/80 transition-colors;
   }
 
-  .medical-card:hover {
-    box-shadow: var(--shadow-md);
+  .vmtb-btn-outline {
+    @apply px-6 py-3 border border-border rounded-lg font-semibold hover:bg-muted transition-colors;
   }
 
-  /* Document preview */
-  .document-preview {
-    @apply relative rounded-lg overflow-hidden border-2 border-dashed border-border bg-muted/30;
+  .vmtb-tab {
+    @apply px-4 py-2 text-muted-foreground hover:text-foreground transition-colors relative;
   }
 
-  .document-preview-verified {
-    @apply border-solid border-success/50 bg-success-light;
+  .vmtb-tab-active {
+    @apply text-foreground font-medium;
   }
 
-  /* Shake animation for validation */
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
-    20%, 40%, 60%, 80% { transform: translateX(4px); }
+  .vmtb-tab-active::after {
+    content: '';
+    @apply absolute bottom-0 left-0 right-0 h-0.5 bg-foreground;
   }
 
-  .shake {
-    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  .vmtb-dropzone {
+    @apply border-2 border-dashed border-border rounded-xl p-12 text-center hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer;
   }
 
-  /* Pulse animation for pending items */
-  @keyframes pulse-gentle {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-  }
-
-  .pulse-gentle {
-    animation: pulse-gentle 2s ease-in-out infinite;
-  }
-
-  /* Fade in animation */
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .animate-fade-in {
-    animation: fadeIn 0.3s ease-out forwards;
-  }
-
-  /* Slide in from right */
-  @keyframes slideInRight {
-    from { opacity: 0; transform: translateX(20px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-
-  .animate-slide-in-right {
-    animation: slideInRight 0.3s ease-out forwards;
-  }
-
-  /* Scale in */
-  @keyframes scaleIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
-  }
-
-  .animate-scale-in {
-    animation: scaleIn 0.2s ease-out forwards;
+  .vmtb-dropzone-active {
+    @apply border-primary bg-primary/5;
   }
 }
 
+/* Custom scrollbar styling - applies globally and via utility classes */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(160, 60%, 95%);
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(160, 60%, 70%);
+  border-radius: 4px;
+  border: 2px solid hsl(160, 60%, 95%);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(160, 65%, 60%);
+}
+
+::-webkit-scrollbar-corner {
+  background: hsl(160, 60%, 95%);
+}
+
+/* Firefox scrollbar styling */
+* {
+  scrollbar-color: hsl(160, 60%, 70%) hsl(160, 60%, 95%);
+  scrollbar-width: thin;
+}
+
 @layer utilities {
-  /* Glass effect */
-  .glass {
-    @apply bg-background/80 backdrop-blur-lg;
+  /* Full-width app container - removes centered constraints */
+  .app-container {
+    max-width: none;
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 
-  /* Text gradient */
-  .text-gradient {
-    @apply bg-clip-text text-transparent;
-    background-image: var(--gradient-primary);
+  @media (max-width: 640px) {
+    .app-container {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
   }
 
-  /* Focus ring */
-  .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  /* Hide scrollbars but keep functionality */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes shakeAnim {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    50% { transform: translateX(8px); }
+    75% { transform: translateX(-8px); }
+    100% { transform: translateX(0); }
+  }
+
+  .shake {
+    animation: shakeAnim 0.3s ease;
+  }
+
+  /* Fix dropdown tick hover color - always white on hover */
+  .file-row-tick {
+    transition: color 0.2s;
+  }
+
+  .dropdown-menu-item:hover .file-row-tick,
+  .dropdown-menu-item[data-highlighted] .file-row-tick {
+    color: white !important;
+  }
+
+  /* Fix hover text color in searchable dropdown lists */
+  .hover\:bg-accent:hover {
+    color: white !important;
+  }
+
+  .hover\:bg-accent:hover .text-muted-foreground {
+    color: rgba(255, 255, 255, 0.8) !important;
+  }
+
+  /* ===========================
+     HOMEPAGE REDESIGN STYLES
+     =========================== */
+
+  .bg-home-page {
+    background: #ffffff;
+    min-height: 100vh;
+  }
+
+  /* Welcome Section */
+  .home-welcome-text {
+    font-size: 42px;
+    font-weight: 500;
+    font-style: italic;
+    color: hsl(200, 25%, 25%);
+    line-height: 1.2;
+  }
+
+  .home-doctor-name {
+    font-size: 48px;
+    font-weight: 600;
+    font-style: italic;
+    color: hsl(180, 60%, 35%);
+    line-height: 1.2;
+  }
+
+  .home-subtext-new {
+    font-size: 18px;
+    font-weight: 400;
+    color: hsl(200, 20%, 30%);
+    line-height: 1.6;
+    margin-top: 16px;
+  }
+
+  /* Upcoming Discussion Card */
+  .home-discussion-card {
+    background: #f9fafb;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e5e7eb;
+  }
+
+  .home-discussion-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: hsl(200, 25%, 20%);
+    margin-bottom: 16px;
+  }
+
+  /* Form Card Styling */
+  .home-form-card {
+    background: #f9fafb;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e5e7eb;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 380px;
+    margin-left: auto;
+  }
+
+  .home-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .home-form-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+  }
+
+  .home-form-input {
+    width: 100%;
+    height: 44px;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0 12px;
+    font-size: 14px;
+    color: #1a1a1a;
+    font-family: inherit;
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+  }
+
+  .home-form-input::placeholder {
+    color: #9ca3af;
+  }
+
+  .home-form-input:focus {
+    outline: none;
+    border-color: hsl(160, 84%, 39%);
+    box-shadow: 0 0 0 3px hsla(160, 84%, 39%, 0.15);
+  }
+
+  .home-form-input:focus-visible {
+    outline: none;
+  }
+
+  .home-form-helper {
+    font-size: 12px;
+    font-weight: 400;
+    color: #6b7280;
+  }
+
+  /* Next Button */
+  .home-btn-next {
+    height: 48px;
+    border-radius: 10px;
+    background: linear-gradient(to right, hsl(160, 70%, 40%), hsl(170, 65%, 35%));
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+    transition: transform 200ms ease, box-shadow 200ms ease;
+    margin-top: 8px;
+  }
+
+  .home-btn-next:hover {
+    transform: scale(1.01);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .home-btn-next:active {
+    transform: scale(0.99);
+  }
+
+  .home-btn-next:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Tablet Responsiveness */
+  @media (max-width: 1024px) and (min-width: 768px) {
+    .home-form-card {
+      padding: 24px;
+      min-height: auto;
+    }
+
+    .home-welcome-text {
+      font-size: 32px;
+    }
+
+    .home-doctor-name {
+      font-size: 38px;
+    }
+
+    .home-subtext-new {
+      font-size: 16px;
+    }
+  }
+
+  /* Mobile Responsiveness */
+  @media (max-width: 767px) {
+    .home-form-card {
+      padding: 20px;
+      gap: 16px;
+      min-height: auto;
+    }
+
+    .home-welcome-text {
+      font-size: 26px;
+    }
+
+    .home-doctor-name {
+      font-size: 30px;
+    }
+
+    .home-subtext-new {
+      font-size: 15px;
+    }
+
+    .home-form-label {
+      font-size: 13px;
+    }
+
+    .home-form-input {
+      height: 40px;
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    .home-form-helper {
+      font-size: 11px;
+    }
+
+    .home-btn-next {
+      height: 44px;
+      font-size: 15px;
+    }
+
+    .home-discussion-card {
+      min-height: 140px;
+      padding: 20px;
+    }
+  }
+
+  /* Hide scrollbar globally but keep scrolling - FIX FOR LANDING PAGE */
+  html, body {
+    -ms-overflow-style: none;      /* IE & Edge */
+    scrollbar-width: none;         /* Firefox */
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;                 /* Chrome, Safari */
   }
 }
