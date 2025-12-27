@@ -699,6 +699,10 @@ export type Database = {
         Args: { _mtb_id: string; _user_id: string }
         Returns: boolean
       }
+      is_mtb_member_for_case_path: {
+        Args: { file_path: string }
+        Returns: boolean
+      }
       is_mtb_owner: {
         Args: { _mtb_id: string; _user_id: string }
         Returns: boolean
