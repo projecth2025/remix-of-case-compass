@@ -237,7 +237,6 @@ const FilePreview = () => {
       // Clear local state after successful save
       clearUploadedFiles();
       setShowSubmitModal(false);
-      toast.success('Case created successfully!');
       navigate('/cases');
     } else {
       console.error('[handleCreateCase] createPatientAndCase returned null');
