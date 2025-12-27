@@ -656,9 +656,14 @@ export function useSupabaseData() {
   // Load a case for editing (fetch full document data with storage URLs)
   const loadCaseForEditing = useCallback(
     async (caseId: string): Promise<FullCase | null> => {
-      if (!user) return null;
+      if (!user) {
+        console.error('[loadCaseForEditing] No user found');
+        return null;
+      }
 
       try {
+        console.log('[loadCaseForEditing] Loading case:', caseId);
+        
         // Fetch case - RLS policies handle access control (own cases + MTB shared cases)
         const { data: caseData, error: caseError } = await supabase
           .from('cases')
@@ -666,7 +671,10 @@ export function useSupabaseData() {
           .eq('id', caseId)
           .single();
 
-        if (caseError) throw caseError;
+        if (caseError) {
+          console.error('[loadCaseForEditing] Case fetch error:', caseError);
+          throw caseError;
+        }
 
         // Fetch patient
         const { data: patient, error: patientError } = await supabase
@@ -675,7 +683,10 @@ export function useSupabaseData() {
           .eq('case_id', caseId)
           .single();
 
-        if (patientError) throw patientError;
+        if (patientError) {
+          console.error('[loadCaseForEditing] Patient fetch error:', patientError);
+          throw patientError;
+        }
 
         // Fetch documents
         const { data: documents, error: documentsError } = await supabase
@@ -683,7 +694,12 @@ export function useSupabaseData() {
           .select('*')
           .eq('case_id', caseId);
 
-        if (documentsError) throw documentsError;
+        if (documentsError) {
+          console.error('[loadCaseForEditing] Documents fetch error:', documentsError);
+          throw documentsError;
+        }
+        
+        console.log('[loadCaseForEditing] Fetched', documents?.length || 0, 'documents');
 
         // Build files with signed URLs for private bucket access
         const files: UploadedFile[] = await Promise.all(
@@ -735,6 +751,7 @@ export function useSupabaseData() {
                 }
               } catch (err) {
                 console.error('[loadCaseForEditing] Error loading file:', doc.file_name, err);
+                // Don't throw - continue with other files and show what we can
               }
             }
 
@@ -752,6 +769,8 @@ export function useSupabaseData() {
             };
           })
         );
+        
+        console.log('[loadCaseForEditing] Successfully loaded', files.length, 'files');
 
         return {
           id: caseData.id,
