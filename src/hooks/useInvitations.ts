@@ -85,14 +85,36 @@ export function useInvitations() {
   const sendInvitations = async (
     mtbId: string,
     emails: string[]
-  ): Promise<{ success: string[]; failed: string[]; notRegistered: string[] }> => {
-    if (!user) {
-      return { success: [], failed: emails, notRegistered: [] };
+  ): Promise<{ success: string[]; failed: string[]; notRegistered: string[]; selfInvite: string[] }> => {
+    if (!user || !profile?.email) {
+      return { success: [], failed: emails, notRegistered: [], selfInvite: [] };
     }
 
-    const results = { success: [] as string[], failed: [] as string[], notRegistered: [] as string[] };
+    const results = { 
+      success: [] as string[], 
+      failed: [] as string[], 
+      notRegistered: [] as string[],
+      selfInvite: [] as string[]
+    };
 
+    // Filter out self-invitations at the backend level
+    const filteredEmails: string[] = [];
     for (const email of emails) {
+      if (email.toLowerCase() === profile.email.toLowerCase()) {
+        results.selfInvite.push(email);
+      } else {
+        filteredEmails.push(email);
+      }
+    }
+
+    if (results.selfInvite.length > 0) {
+      toast.error('You cannot invite yourself to an MTB');
+    }
+
+    for (const email of filteredEmails) {
+
+    
+
       try {
         // Check if user exists
         const { data: existingProfile } = await supabase
