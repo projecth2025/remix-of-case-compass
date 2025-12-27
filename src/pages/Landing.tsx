@@ -33,7 +33,7 @@ const Landing = () => {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center gap-2">
-              <BookOpen className="w-8 h-8 text-[#219ebc]" />
+              <img src="/vmtblogo.svg" alt="vMTB Logo" className="w-8 h-8" />
               <span className="text-xl font-semibold text-[#219ebc]">vMTB</span>
             </div>
 
@@ -187,7 +187,7 @@ const Landing = () => {
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center md:items-start justify-between gap-8">
             {/* Logo + Brand */}
             <div className="flex items-center gap-3">
-              <BookOpen className="w-10 h-10 text-white" />
+              <img src="/vmtblogo.svg" alt="vMTB Logo" className="w-10 h-10" />
               <span className="text-2xl font-semibold text-white">vMTB</span>
             </div>
             

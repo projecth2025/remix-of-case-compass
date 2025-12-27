@@ -160,12 +160,7 @@ const Auth = () => {
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className={`w-full ${isLogin ? 'max-w-md' : 'max-w-5xl'} animate-fade-in`}>
         <div className={`text-center ${isLogin ? 'mb-8' : 'mb-6'}`}>
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-t from-primary to-primary/60 relative">
-              <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-primary/80 to-transparent rounded-b-full" />
-              <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-sky-300 rounded-full opacity-80" />
-            </div>
-          </div>
+          <img src="/vmtblogo.svg" alt="vMTB Logo" className="w-16 h-16 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground">{isLogin ? 'Welcome Back' : 'Create Account'}</h1>
           <p className="text-muted-foreground mt-1">{isLogin ? 'Sign in to your account' : 'Sign up to get started'}</p>
         </div>
