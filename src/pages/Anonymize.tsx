@@ -75,8 +75,6 @@ const Anonymize = () => {
   const [isLoadingPDF, setIsLoadingPDF] = useState(false);
 
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
-  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
-  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
   const [triggerShake, setTriggerShake] = useState(false);
 
   const strokeSizeValues = { small: 8, medium: 16, large: 24 };
@@ -611,29 +609,13 @@ const Anonymize = () => {
     toast.success('Document anonymized successfully');
   };
 
-  // Check if there are unsaved anonymization changes
-  const hasUnsavedChanges = shapes.length > 0;
-
-  // Wrapper to handle navigation with unsaved changes check
-  const handleNavigationWithCheck = (navigationFn: () => void) => {
-    if (hasUnsavedChanges) {
-      setPendingNavigation(() => navigationFn);
-      setShowUnsavedModal(true);
-      return;
-    }
-    navigationFn();
-  };
-
   const handleNext = () => {
-    const navigate_ = () => {
-      if (isLastFile) {
-        // On last file, "Next" should go to digitization
-        handleGoToDigitization();
-      } else {
-        navigate(`/upload/anonymize/${currentIndex + 1}`);
-      }
-    };
-    handleNavigationWithCheck(navigate_);
+    if (isLastFile) {
+      // On last file, "Next" should go to digitization
+      handleGoToDigitization();
+    } else {
+      navigate(`/upload/anonymize/${currentIndex + 1}`);
+    }
   };
 
   const handleGoToDigitization = () => {
@@ -680,36 +662,18 @@ const Anonymize = () => {
   };
 
   const handlePrevious = () => {
-    const navigate_ = () => {
-      if (currentIndex > 0) {
-        navigate(`/upload/anonymize/${currentIndex - 1}`);
-      }
-    };
-    handleNavigationWithCheck(navigate_);
+    if (currentIndex > 0) {
+      navigate(`/upload/anonymize/${currentIndex - 1}`);
+    }
   };
 
   const handleFileSelect = (index: number) => {
-    const navigate_ = () => {
-      // Navigation will trigger useEffect which marks file as visited
-      navigate(`/upload/anonymize/${index}`);
-    };
-    handleNavigationWithCheck(navigate_);
+    // Navigation will trigger useEffect which marks file as visited
+    navigate(`/upload/anonymize/${index}`);
   };
 
   const handleBackToUpload = () => {
-    const navigate_ = () => {
-      navigate('/upload/review');
-    };
-    handleNavigationWithCheck(navigate_);
-  };
-
-  const handleDiscardAndNavigate = () => {
-    setShapes([]);
-    setShowUnsavedModal(false);
-    if (pendingNavigation) {
-      pendingNavigation();
-      setPendingNavigation(null);
-    }
+    navigate('/upload/review');
   };
 
   if (!currentPatient || !currentFile) {
@@ -775,10 +739,9 @@ const Anonymize = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrevious}
-              disabled={isFirstFile || hasUnsavedChanges}
+              disabled={isFirstFile}
               className="vmtb-btn-outline flex items-center gap-1 px-2.5 py-1 text-xs disabled:opacity-50 flex-shrink-0"
               aria-label="Previous file"
-              title={hasUnsavedChanges ? "Anonymize your changes before navigating" : "Previous file"}
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Previous
@@ -789,10 +752,8 @@ const Anonymize = () => {
                 {!isLastFile && (
                   <button 
                     onClick={handleNext} 
-                    disabled={hasUnsavedChanges}
-                    className="vmtb-btn-primary flex items-center gap-1 px-2.5 py-1 text-xs flex-shrink-0 disabled:opacity-50"
+                    className="vmtb-btn-primary flex items-center gap-1 px-2.5 py-1 text-xs flex-shrink-0"
                     aria-label="Next file"
-                    title={hasUnsavedChanges ? "Anonymize your changes before navigating" : "Next file"}
                   >
                     Next
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -801,10 +762,8 @@ const Anonymize = () => {
                 {isLastFile && (
                   <button
                     onClick={handleGoToDigitization}
-                    disabled={hasUnsavedChanges}
-                    className="vmtb-btn-primary flex items-center gap-1 px-2.5 py-1 text-xs flex-shrink-0 disabled:opacity-50"
+                    className="vmtb-btn-primary flex items-center gap-1 px-2.5 py-1 text-xs flex-shrink-0"
                     aria-label="Go to digitization"
-                    title={hasUnsavedChanges ? "Anonymize your changes before navigating" : "Go to digitization"}
                   >
                     Go to Digitization
                   </button>
@@ -816,10 +775,8 @@ const Anonymize = () => {
                 {!isLastFile && (
                   <button 
                     onClick={handleNext} 
-                    disabled={hasUnsavedChanges}
-                    className="vmtb-btn-primary flex items-center gap-1 px-2.5 py-1 text-xs flex-shrink-0 disabled:opacity-50"
+                    className="vmtb-btn-primary flex items-center gap-1 px-2.5 py-1 text-xs flex-shrink-0"
                     aria-label="Next file"
-                    title={hasUnsavedChanges ? "Anonymize your changes before navigating" : "Next file"}
                   >
                     Next
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -827,10 +784,8 @@ const Anonymize = () => {
                 )}
                 <button
                   onClick={handleGoToDigitization}
-                  disabled={hasUnsavedChanges}
-                  className="vmtb-btn-primary flex items-center gap-1 px-2.5 py-1 text-xs flex-shrink-0 disabled:opacity-50"
+                  className="vmtb-btn-primary flex items-center gap-1 px-2.5 py-1 text-xs flex-shrink-0"
                   aria-label="Go to digitization"
-                  title={hasUnsavedChanges ? "Anonymize your changes before navigating" : "Go to digitization"}
                 >
                   Go to Digitization
                 </button>
@@ -1096,21 +1051,6 @@ const Anonymize = () => {
         cancelLabel=""
         onConfirm={handleGoBackToIncomplete}
         onCancel={() => setShowIncompleteModal(false)}
-      />
-
-      {/* Unsaved Anonymization Changes Modal */}
-      <ConfirmModal
-        open={showUnsavedModal}
-        onOpenChange={setShowUnsavedModal}
-        title="Unsaved Anonymization"
-        description="You have drawn anonymization marks that have not been applied. Please click 'Anonymize' to save your changes, or discard them to continue."
-        confirmLabel="Discard & Continue"
-        cancelLabel="Go Back"
-        onConfirm={handleDiscardAndNavigate}
-        onCancel={() => {
-          setShowUnsavedModal(false);
-          setPendingNavigation(null);
-        }}
       />
     </div>
   );
