@@ -437,7 +437,7 @@ export function useSupabaseData() {
   };
 
   // Modify an existing case - ONLY called on "Modify Case" click
-  // Edit flow now behaves like create: delete all old documents and replace with new ones
+  // Edit flow appends new documents to existing ones (does not delete old documents)
   const modifyCase = async (
     caseId: string,
     patientData: PatientData,
@@ -471,67 +471,31 @@ export function useSupabaseData() {
         })
         .eq('case_id', caseId);
 
-      // 3. Delete all existing documents and their storage files
-      console.log('[modifyCase] Removing all existing documents for case:', caseId);
-      const { data: existingDocs } = await supabase
-        .from('documents')
-        .select('id, storage_path, page_count, file_type')
-        .eq('case_id', caseId);
-
-      if (existingDocs && existingDocs.length > 0) {
-        // Collect all storage paths including multi-page PDF paths
-        const storagePaths: string[] = [];
-        for (const doc of existingDocs) {
-          if (doc.storage_path) {
-            const isPdf = doc.file_type === 'pdf';
-            const hasPagePattern = doc.storage_path.includes('_page_');
-            
-            if (isPdf && hasPagePattern && doc.page_count > 1) {
-              // Multi-page PDF - collect all page paths
-              const basePath = doc.storage_path.replace(/_page_\d+\.png$/, '');
-              for (let i = 0; i < doc.page_count; i++) {
-                storagePaths.push(`${basePath}_page_${i}.png`);
-              }
-            } else {
-              storagePaths.push(doc.storage_path);
-            }
-          }
-        }
-
-        // Delete from storage
-        if (storagePaths.length > 0) {
-          await supabase.storage.from('case-documents').remove(storagePaths);
-        }
-
-        // Delete document records (this will cascade to document_edit_tracking)
-        await supabase.from('documents').delete().eq('case_id', caseId);
-      }
-
-      // 4. Upload and create all new documents (like create flow)
-      console.log('[modifyCase] Creating', files.length, 'new documents');
+      // 3. Upload and append new documents (preserve existing ones)
+      console.log('[modifyCase] Appending', files.length, 'new documents to case:', caseId);
       
-      const uploadPromises = files.map(async (file) => {
-        const uploadResult = await uploadFileToStorage(file, caseId);
-        const isPdf = file.type === 'application/pdf';
-        const pageCount = isPdf ? (file.pdfPages?.length || file.anonymizedPages?.length || 1) : 1;
+      if (files.length > 0) {
+        const uploadPromises = files.map(async (file) => {
+          const uploadResult = await uploadFileToStorage(file, caseId);
+          const isPdf = file.type === 'application/pdf';
+          const pageCount = isPdf ? (file.pdfPages?.length || file.anonymizedPages?.length || 1) : 1;
 
-        return {
-          case_id: caseId,
-          file_name: file.name,
-          file_type: isPdf ? 'pdf' : 'image',
-          file_category: file.fileCategory || null,
-          page_count: pageCount,
-          storage_path: uploadResult?.storagePath || null,
-          anonymized_file_url: uploadResult?.signedUrl || null,
-          digitized_text: file.extractedData || null,
-          is_anonymized: file.anonymizedVisited || false,
-          is_digitized: file.digitizedVisited || false,
-        };
-      });
+          return {
+            case_id: caseId,
+            file_name: file.name,
+            file_type: isPdf ? 'pdf' : 'image',
+            file_category: file.fileCategory || null,
+            page_count: pageCount,
+            storage_path: uploadResult?.storagePath || null,
+            anonymized_file_url: uploadResult?.signedUrl || null,
+            digitized_text: file.extractedData || null,
+            is_anonymized: file.anonymizedVisited || false,
+            is_digitized: file.digitizedVisited || false,
+          };
+        });
 
-      const documentRecords = await Promise.all(uploadPromises);
+        const documentRecords = await Promise.all(uploadPromises);
 
-      if (documentRecords.length > 0) {
         const { data: documents, error: documentsError } = await supabase
           .from('documents')
           .insert(documentRecords)
@@ -554,14 +518,14 @@ export function useSupabaseData() {
         }
       }
 
-      // 5. Create audit log
+      // 4. Create audit log
       await supabase
         .from('audit_logs')
         .insert({
           entity_type: 'case',
           entity_id: caseId,
           edited_by: user.id,
-          change_summary: `Case updated with ${files.length} new document(s)`,
+          change_summary: `Case updated, ${files.length} new document(s) added`,
         });
 
       // Refresh cases
