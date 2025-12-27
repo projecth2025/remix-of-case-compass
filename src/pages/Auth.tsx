@@ -184,49 +184,10 @@ const Auth = () => {
               </div>
             </>
           ) : (
-            // Signup Form - Two Column Layout
-            <>
-              {/* Profile Picture Upload */}
-              <div className="col-span-full flex justify-center mb-4">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="relative">
-                    {avatarPreview ? (
-                      <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-primary/20">
-                        <img src={avatarPreview} alt="Profile preview" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={removeAvatar}
-                          className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-full p-1"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center border-4 border-dashed border-border">
-                        <User className="w-10 h-10 text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-sm text-primary hover:underline flex items-center gap-1"
-                  >
-                    <Upload className="w-4 h-4" />
-                    {avatarPreview ? 'Change Photo' : 'Upload Profile Photo'}
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageUpload}
-                  />
-                  <p className="text-xs text-muted-foreground">(Optional)</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            // Signup Form - Side by Side Layout (Form Left, Photo Right)
+            <div className="flex gap-8">
+              {/* Left side - Form fields */}
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1.5">Name <span className="text-destructive">*</span></label>
                   <input type="text" value={name} onChange={e => setName(e.target.value)} className="vmtb-input" placeholder="Enter your name" />
@@ -256,7 +217,45 @@ const Auth = () => {
                   <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="vmtb-input" placeholder="Confirm your password" />
                 </div>
               </div>
-            </>
+
+              {/* Right side - Profile Picture Upload */}
+              <div className="flex flex-col items-center justify-center gap-3 px-6 border-l border-border">
+                <div className="relative">
+                  {avatarPreview ? (
+                    <div className="relative w-28 h-28 rounded-full overflow-hidden border-4 border-primary/20">
+                      <img src={avatarPreview} alt="Profile preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={removeAvatar}
+                        className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-full p-1"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-28 h-28 rounded-full bg-muted flex items-center justify-center border-4 border-dashed border-border">
+                      <User className="w-12 h-12 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                >
+                  <Upload className="w-4 h-4" />
+                  {avatarPreview ? 'Change' : 'Upload Photo'}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+                <p className="text-xs text-muted-foreground">(Optional)</p>
+              </div>
+            </div>
           )}
 
           {/* Terms and Conditions Checkbox - Only for Signup */}
