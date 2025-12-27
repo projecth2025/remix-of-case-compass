@@ -56,7 +56,7 @@ const MTBDetail = () => {
   
   // Update active section when URL changes
   useEffect(() => {
-    if (sectionFromUrl && ['mycases', 'shared', 'experts', 'meetings'].includes(sectionFromUrl)) {
+    if (sectionFromUrl && ['mycases', 'allcases', 'experts', 'meetings'].includes(sectionFromUrl)) {
       setActiveSection(sectionFromUrl);
     }
   }, [sectionFromUrl]);
@@ -215,7 +215,7 @@ const MTBDetail = () => {
   const renderContent = () => {
     switch (activeSection) {
       case 'mycases':
-      case 'shared':
+      case 'allcases':
         return (
           <div className="p-4 md:p-6 animate-fade-in h-full overflow-y-auto">
             <div className="vmtb-card p-6">

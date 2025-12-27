@@ -136,7 +136,7 @@ const AddExpertModal = ({ open, onOpenChange, onAdd, ownerEmail }: AddExpertModa
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Add Expert</DialogTitle>
         </DialogHeader>

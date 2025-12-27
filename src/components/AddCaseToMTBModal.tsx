@@ -135,7 +135,7 @@ const AddCaseToMTBModal = ({ open, onOpenChange, onAddCases, currentMtbId }: Add
 
   return (
     <Dialog open={open} onOpenChange={resetAndClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Add Cases to MTB</DialogTitle>
         </DialogHeader>

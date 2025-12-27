@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FolderOpen,
-  Share2,
+  Folders,
   Users,
   Calendar,
   Plus,
@@ -25,7 +25,7 @@ interface MTBSidebarProps {
 
 const sections = [
   { id: 'mycases', label: 'My Cases', icon: FolderOpen },
-  { id: 'shared', label: 'Shared Cases', icon: Share2 },
+  { id: 'allcases', label: 'All Cases', icon: Folders },
   { id: 'experts', label: 'Experts', icon: Users },
   { id: 'meetings', label: 'Meetings', icon: Calendar },
 ];
