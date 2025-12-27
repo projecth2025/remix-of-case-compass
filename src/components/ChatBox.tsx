@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
 import { Expert, ChatMessage } from '@/lib/storage';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatMessageTime, isDifferentDay } from '@/lib/chatUtils';
+import ChatDateSeparator from '@/components/ChatDateSeparator';
 
 interface ChatBoxProps {
   expert: Expert;
@@ -56,22 +58,31 @@ const ChatBox = ({ expert, caseId, messages = [], onSendMessage }: ChatBoxProps)
             No messages yet. Start the conversation!
           </div>
         )}
-        {messages.map(msg => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[70%] px-4 py-2 rounded-2xl ${
-                msg.senderId === user?.id
-                  ? 'bg-primary text-primary-foreground rounded-br-md'
-                  : 'bg-muted text-foreground rounded-bl-md'
-              }`}
-            >
-              {msg.content}
+        {messages.map((msg, index) => {
+          const isOwnMessage = msg.senderId === user?.id;
+          const prevMessage = index > 0 ? messages[index - 1] : null;
+          const showDateSeparator = !prevMessage || isDifferentDay(prevMessage.timestamp, msg.timestamp);
+          
+          return (
+            <div key={msg.id}>
+              {showDateSeparator && <ChatDateSeparator timestamp={msg.timestamp} />}
+              <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`max-w-[70%] px-4 py-2 rounded-2xl ${
+                    isOwnMessage
+                      ? 'bg-primary text-primary-foreground rounded-br-md'
+                      : 'bg-muted text-foreground rounded-bl-md'
+                  }`}
+                >
+                  <div>{msg.content}</div>
+                  <div className={`text-[10px] mt-1 text-right ${isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                    {formatMessageTime(msg.timestamp)}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
