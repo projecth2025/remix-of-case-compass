@@ -610,6 +610,11 @@ const Anonymize = () => {
   };
 
   const handleNext = () => {
+    // Prevent navigation if there are drawn shapes that haven't been anonymised
+    if (shapes.length > 0 || currentShape) {
+      toast.error('Please anonymise first.');
+      return;
+    }
     if (isLastFile) {
       // On last file, "Next" should go to digitization
       handleGoToDigitization();
@@ -619,6 +624,11 @@ const Anonymize = () => {
   };
 
   const handleGoToDigitization = () => {
+    // Prevent proceeding to digitization if there are pending shapes
+    if (shapes.length > 0 || currentShape) {
+      toast.error('Please anonymise first.');
+      return;
+    }
     // Use functional update to mark current file as visited and validate atomically
     // This ensures we validate against the latest state, not a stale closure
     const updatedFiles = uploadedFiles.map((f, i) =>
