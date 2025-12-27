@@ -233,7 +233,7 @@ const MTBDetail = () => {
                   </div>
                   <div>
                     <h2 className="font-semibold text-foreground">{mtb.name}</h2>
-                    <p className="text-sm text-muted-foreground">{activeSection === 'mycases' ? 'My Cases' : 'Shared Cases'}</p>
+                    <p className="text-sm text-muted-foreground">{activeSection === 'mycases' ? 'My Cases' : 'All Cases'}</p>
                   </div>
                 </div>
                 <div className="relative">

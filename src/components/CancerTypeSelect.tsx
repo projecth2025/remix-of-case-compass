@@ -80,10 +80,13 @@ interface CancerTypeSelectProps {
   className?: string;
 }
 
+/**
+ * CancerTypeSelect allows selecting from a predefined list or entering a custom cancer type
+ */
 const CancerTypeSelect = ({
   value,
   onChange,
-  placeholder = 'Select cancer type',
+  placeholder = 'Select or type cancer type',
   className,
 }: CancerTypeSelectProps) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -95,9 +98,21 @@ const CancerTypeSelect = ({
     option.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Check if the current search term matches any option exactly (case insensitive)
+  const isExactMatch = CANCER_TYPES.some(
+    option => option.toLowerCase() === searchTerm.toLowerCase()
+  );
+
+  // Show "Add custom" option if there's a search term that doesn't match any option
+  const showCustomOption = searchTerm.trim() && !isExactMatch && filteredOptions.length === 0;
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        // When closing, if there's a search term that's custom, use it as the value
+        if (searchTerm.trim() && !isExactMatch) {
+          onChange(searchTerm.trim());
+        }
         setIsOpen(false);
         setSearchTerm('');
       }
@@ -105,7 +120,7 @@ const CancerTypeSelect = ({
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [searchTerm, isExactMatch, onChange]);
 
   const handleFocus = () => {
     setIsOpen(true);
@@ -120,8 +135,27 @@ const CancerTypeSelect = ({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
+    const newValue = e.target.value;
+    setSearchTerm(newValue);
     if (!isOpen) setIsOpen(true);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (filteredOptions.length > 0) {
+        handleSelect(filteredOptions[0]);
+      } else if (searchTerm.trim()) {
+        // Accept custom value on Enter
+        handleSelect(searchTerm.trim());
+      }
+    }
+  };
+
+  const handleAddCustom = () => {
+    if (searchTerm.trim()) {
+      handleSelect(searchTerm.trim());
+    }
   };
 
   return (
@@ -133,6 +167,7 @@ const CancerTypeSelect = ({
           value={isOpen ? searchTerm : value}
           onChange={handleInputChange}
           onFocus={handleFocus}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={cn('vmtb-input h-10 w-full pr-10', className)}
         />
@@ -160,9 +195,18 @@ const CancerTypeSelect = ({
                 {option}
               </button>
             ))
+          ) : showCustomOption ? (
+            <button
+              type="button"
+              onClick={handleAddCustom}
+              className="w-full px-4 py-3 text-left text-sm hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              <span className="text-muted-foreground">Use custom type: </span>
+              <span className="font-medium text-foreground">"{searchTerm.trim()}"</span>
+            </button>
           ) : (
             <div className="px-4 py-3 text-sm text-muted-foreground">
-              No cancer types found
+              No cancer types found. Type to add a custom type.
             </div>
           )}
         </div>
