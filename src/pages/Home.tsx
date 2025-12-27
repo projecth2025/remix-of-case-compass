@@ -34,8 +34,9 @@ const Home = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !age || !sex || !cancerType || !caseName) {
-      toast.error('Please fill in all fields');
+    // Patient name is optional, all other fields are required
+    if (!age || !sex || !cancerType || !caseName) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -95,9 +96,9 @@ const Home = () => {
           {/* Right Column: Form Card */}
           <form onSubmit={handleSubmit}>
             <div className="home-form-card">
-              {/* Name Field */}
+              {/* Name Field - Optional */}
               <div className="home-form-field">
-                <label className="home-form-label">Name</label>
+                <label className="home-form-label">Patient Name (Optional)</label>
                 <input
                   type="text"
                   value={name}
