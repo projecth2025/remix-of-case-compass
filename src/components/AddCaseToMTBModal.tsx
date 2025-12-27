@@ -146,10 +146,11 @@ const AddCaseToMTBModal = ({ open, onOpenChange, onAddCases, currentMtbId }: Add
             <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
               <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium text-destructive">Case already assigned</p>
+                <p className="font-medium text-destructive">Case already assigned to another MTB</p>
                 <p className="text-muted-foreground">
                   "{blockedCase.caseName}" is already linked to "{blockedCase.mtbName}". 
-                  A case can only belong to one MTB at a time.
+                  A case can only belong to one MTB at a time. To add this case here, you must first 
+                  remove it from "{blockedCase.mtbName}".
                 </p>
               </div>
             </div>

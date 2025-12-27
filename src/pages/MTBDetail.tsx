@@ -281,7 +281,8 @@ const MTBDetail = () => {
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
-                              {isOwner && (
+                              {/* Only the user who added the case can remove it */}
+                              {caseItem.addedBy === user?.id && (
                                 <button 
                                   onClick={() => handleDeleteCaseClick(caseItem.caseId)}
                                   className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
