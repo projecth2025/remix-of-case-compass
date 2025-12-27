@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { Upload, User, X } from 'lucide-react';
 import ProfessionSelect from '@/components/ProfessionSelect';
 import {
   Dialog,
@@ -11,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 
 const emailSchema = z.string().email('Please enter a valid email');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -27,8 +29,59 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [termsModalOpen, setTermsModalOpen] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image size must be less than 5MB');
+        return;
+      }
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeAvatar = () => {
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const uploadAvatar = async (userId: string): Promise<string | null> => {
+    if (!avatarFile) return null;
+
+    try {
+      const fileExt = avatarFile.name.split('.').pop();
+      const fileName = `${userId}/avatar.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, avatarFile, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      return null;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,18 +124,29 @@ const Auth = () => {
       if (isLogin) {
         const { error } = await signIn(trimmedEmail, password);
         if (error) {
-          toast.error(error.message.includes('Invalid login credentials') ? 'Invalid email or password' : error.message);
+          // Check for email not confirmed error
+          if (error.message.includes('Email not confirmed')) {
+            toast.error('Please verify your email before logging in');
+            navigate('/verify-email');
+          } else {
+            toast.error(error.message.includes('Invalid login credentials') ? 'Invalid email or password' : error.message);
+          }
         } else {
           toast.success('Welcome back!');
           navigate('/home');
         }
       } else {
+        // For signup, we'll pass the avatar URL if uploaded
+        // But first we need to create the user to get the ID
         const { error } = await signUp(trimmedEmail, password, name, profession, phone, hospitalName);
+        
         if (error) {
           toast.error(error.message.includes('already registered') ? 'An account with this email already exists' : error.message);
         } else {
-          toast.success('Account created successfully!');
-          navigate('/home');
+          // If we have an avatar, upload it after signup
+          // Note: Avatar will be updated after email verification when user logs in
+          toast.success('Account created! Please check your email to verify your account.');
+          navigate('/verify-email');
         }
       }
     } catch (error: any) {
@@ -121,36 +185,78 @@ const Auth = () => {
             </>
           ) : (
             // Signup Form - Two Column Layout
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Name <span className="text-destructive">*</span></label>
-                <input type="text" value={name} onChange={e => setName(e.target.value)} className="vmtb-input" placeholder="Enter your name" />
+            <>
+              {/* Profile Picture Upload */}
+              <div className="col-span-full flex justify-center mb-4">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="relative">
+                    {avatarPreview ? (
+                      <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-primary/20">
+                        <img src={avatarPreview} alt="Profile preview" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={removeAvatar}
+                          className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-full p-1"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center border-4 border-dashed border-border">
+                        <User className="w-10 h-10 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-sm text-primary hover:underline flex items-center gap-1"
+                  >
+                    <Upload className="w-4 h-4" />
+                    {avatarPreview ? 'Change Photo' : 'Upload Profile Photo'}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                  <p className="text-xs text-muted-foreground">(Optional)</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Profession <span className="text-destructive">*</span></label>
-                <ProfessionSelect value={profession} onChange={setProfession} placeholder="Select or type profession" />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Name <span className="text-destructive">*</span></label>
+                  <input type="text" value={name} onChange={e => setName(e.target.value)} className="vmtb-input" placeholder="Enter your name" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Profession <span className="text-destructive">*</span></label>
+                  <ProfessionSelect value={profession} onChange={setProfession} placeholder="Select or type profession" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Email <span className="text-destructive">*</span></label>
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="vmtb-input" placeholder="Enter your email" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Hospital Name <span className="text-muted-foreground text-xs">(Optional)</span></label>
+                  <input type="text" value={hospitalName} onChange={e => setHospitalName(e.target.value)} className="vmtb-input" placeholder="Enter your hospital name" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Password <span className="text-destructive">*</span></label>
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="vmtb-input" placeholder="Create a password" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Phone Number <span className="text-muted-foreground text-xs">(Optional)</span></label>
+                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="vmtb-input" placeholder="Enter your phone number" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Confirm Password <span className="text-destructive">*</span></label>
+                  <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="vmtb-input" placeholder="Confirm your password" />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Email <span className="text-destructive">*</span></label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="vmtb-input" placeholder="Enter your email" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Hospital Name <span className="text-muted-foreground text-xs">(Optional)</span></label>
-                <input type="text" value={hospitalName} onChange={e => setHospitalName(e.target.value)} className="vmtb-input" placeholder="Enter your hospital name" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Password <span className="text-destructive">*</span></label>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="vmtb-input" placeholder="Create a password" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Phone Number <span className="text-muted-foreground text-xs">(Optional)</span></label>
-                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="vmtb-input" placeholder="Enter your phone number" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Confirm Password <span className="text-destructive">*</span></label>
-                <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="vmtb-input" placeholder="Confirm your password" />
-              </div>
-            </div>
+            </>
           )}
 
           {/* Terms and Conditions Checkbox - Only for Signup */}

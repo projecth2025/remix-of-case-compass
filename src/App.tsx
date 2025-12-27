@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 // Pages
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
+import VerifyEmail from "./pages/VerifyEmail";
 import Home from "./pages/Home";
 import Upload from "./pages/Upload";
 import UploadReview from "./pages/UploadReview";
@@ -67,6 +68,7 @@ const AppRoutes = () => {
       {/* Public Routes */}
       <Route path="/" element={<Landing />} />
       <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
 
       {/* Protected Routes */}
       <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />

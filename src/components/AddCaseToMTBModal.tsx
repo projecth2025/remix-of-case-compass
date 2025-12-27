@@ -1,14 +1,21 @@
-import { useState } from 'react';
-import { X, Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Plus, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useSupabaseData, FullCase } from '@/hooks/useSupabaseData';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface AddCaseToMTBModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddCases: (caseIds: string[]) => void;
+  currentMtbId?: string;
+}
+
+interface CaseWithMTB extends FullCase {
+  linkedMtbName?: string;
 }
 
 /**
@@ -16,25 +23,60 @@ interface AddCaseToMTBModalProps {
  * - Case search with autocomplete
  * - Gmail-style chip system for selected cases
  * - Shows case name, patient name, and cancer type in suggestions
+ * - Enforces: one case can only belong to one MTB
  */
-const AddCaseToMTBModal = ({ open, onOpenChange, onAddCases }: AddCaseToMTBModalProps) => {
+const AddCaseToMTBModal = ({ open, onOpenChange, onAddCases, currentMtbId }: AddCaseToMTBModalProps) => {
   const { cases } = useSupabaseData();
   const [selectedCases, setSelectedCases] = useState<string[]>([]);
   const [caseInput, setCaseInput] = useState('');
-  const [caseSuggestions, setCaseSuggestions] = useState<FullCase[]>([]);
+  const [caseSuggestions, setCaseSuggestions] = useState<CaseWithMTB[]>([]);
+  const [caseMtbMap, setCaseMtbMap] = useState<Record<string, string>>({});
+  const [blockedCase, setBlockedCase] = useState<{caseName: string, mtbName: string} | null>(null);
+
+  // Load case-MTB associations on mount
+  useEffect(() => {
+    const loadCaseMtbAssociations = async () => {
+      const { data, error } = await supabase
+        .from('mtb_cases')
+        .select(`
+          case_id,
+          mtb:mtbs(id, name)
+        `);
+      
+      if (!error && data) {
+        const map: Record<string, string> = {};
+        data.forEach(item => {
+          if (item.mtb) {
+            map[item.case_id] = (item.mtb as any).name;
+          }
+        });
+        setCaseMtbMap(map);
+      }
+    };
+
+    if (open) {
+      loadCaseMtbAssociations();
+    }
+  }, [open]);
 
   // Get user's cases
   const userCases = cases;
 
   const handleCaseInputChange = (value: string) => {
     setCaseInput(value);
+    setBlockedCase(null);
     if (value.trim()) {
-      const suggestions = userCases.filter(
-        caseItem =>
-          (caseItem.caseName.toLowerCase().includes(value.toLowerCase()) ||
-            caseItem.patient.name.toLowerCase().includes(value.toLowerCase())) &&
-          !selectedCases.includes(caseItem.id)
-      );
+      const suggestions = userCases
+        .filter(
+          caseItem =>
+            (caseItem.caseName.toLowerCase().includes(value.toLowerCase()) ||
+              caseItem.patient.name.toLowerCase().includes(value.toLowerCase())) &&
+            !selectedCases.includes(caseItem.id)
+        )
+        .map(c => ({
+          ...c,
+          linkedMtbName: caseMtbMap[c.id]
+        }));
       setCaseSuggestions(suggestions);
     } else {
       setCaseSuggestions([]);
@@ -43,11 +85,24 @@ const AddCaseToMTBModal = ({ open, onOpenChange, onAddCases }: AddCaseToMTBModal
 
   const addCase = (caseId: string) => {
     const caseItem = userCases.find(c => c.id === caseId);
-    if (caseItem && !selectedCases.includes(caseId)) {
+    if (!caseItem) return;
+
+    // Check if case is already linked to another MTB
+    const linkedMtbName = caseMtbMap[caseId];
+    if (linkedMtbName) {
+      setBlockedCase({ caseName: caseItem.caseName, mtbName: linkedMtbName });
+      toast.error(`This case is already linked to "${linkedMtbName}"`);
+      setCaseInput('');
+      setCaseSuggestions([]);
+      return;
+    }
+
+    if (!selectedCases.includes(caseId)) {
       setSelectedCases([...selectedCases, caseId]);
     }
     setCaseInput('');
     setCaseSuggestions([]);
+    setBlockedCase(null);
   };
 
   const removeCase = (caseId: string) => {
@@ -74,6 +129,7 @@ const AddCaseToMTBModal = ({ open, onOpenChange, onAddCases }: AddCaseToMTBModal
     setSelectedCases([]);
     setCaseInput('');
     setCaseSuggestions([]);
+    setBlockedCase(null);
     onOpenChange(false);
   };
 
@@ -85,6 +141,20 @@ const AddCaseToMTBModal = ({ open, onOpenChange, onAddCases }: AddCaseToMTBModal
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Blocked case warning */}
+          {blockedCase && (
+            <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-destructive">Case already assigned</p>
+                <p className="text-muted-foreground">
+                  "{blockedCase.caseName}" is already linked to "{blockedCase.mtbName}". 
+                  A case can only belong to one MTB at a time.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Case Search Input */}
           <div className="space-y-2">
             <Label>Search Cases</Label>
@@ -126,13 +196,27 @@ const AddCaseToMTBModal = ({ open, onOpenChange, onAddCases }: AddCaseToMTBModal
                       key={caseItem.id}
                       type="button"
                       onClick={() => addCase(caseItem.id)}
-                      className="group w-full px-3 py-2 text-left hover:bg-accent transition-colors"
+                      disabled={!!caseItem.linkedMtbName}
+                      className={`group w-full px-3 py-2 text-left transition-colors ${
+                        caseItem.linkedMtbName 
+                          ? 'opacity-50 cursor-not-allowed bg-muted/50' 
+                          : 'hover:bg-accent'
+                      }`}
                     >
-                      <div className="font-medium text-sm group-hover:text-white">
-                        {caseItem.caseName}
-                      </div>
-                      <div className="text-xs text-muted-foreground group-hover:text-white/80">
-                        {caseItem.patient.name} - {caseItem.patient.cancerType}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className={`font-medium text-sm ${!caseItem.linkedMtbName ? 'group-hover:text-white' : ''}`}>
+                            {caseItem.caseName}
+                          </div>
+                          <div className={`text-xs text-muted-foreground ${!caseItem.linkedMtbName ? 'group-hover:text-white/80' : ''}`}>
+                            {caseItem.patient.name} - {caseItem.patient.cancerType}
+                          </div>
+                        </div>
+                        {caseItem.linkedMtbName && (
+                          <span className="text-xs text-destructive">
+                            In: {caseItem.linkedMtbName}
+                          </span>
+                        )}
                       </div>
                     </button>
                   ))}
@@ -140,7 +224,7 @@ const AddCaseToMTBModal = ({ open, onOpenChange, onAddCases }: AddCaseToMTBModal
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              Type to search cases, press Enter to add, or click a suggestion
+              Type to search cases. Each case can only belong to one MTB.
             </p>
           </div>
 
