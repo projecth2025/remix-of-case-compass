@@ -83,8 +83,9 @@ const EditCase = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !age || !sex || !cancerType || !caseName) {
-      toast.error('Please fill in all fields');
+    // Name is optional, but age, sex, cancerType and caseName are required
+    if (!age || !sex || !cancerType || !caseName) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -104,7 +105,8 @@ const EditCase = () => {
         }
       }
 
-      // Set up edit mode in AppContext with updated patient data and existing files
+      // Set up edit mode in AppContext with updated patient data but NO existing files
+      // Edit flow now behaves like Create - start fresh with documents
       const updatedPatient = { 
         name, 
         age, 
@@ -113,10 +115,11 @@ const EditCase = () => {
         caseName: caseName.trim() 
       };
       
-      setupEditMode(caseId, updatedPatient, loadedCase.files);
+      // Pass empty array for files - edit flow starts fresh like create
+      setupEditMode(caseId, updatedPatient, []);
       
-      // Navigate to upload review to show existing files and allow modifications
-      navigate('/upload/review');
+      // Navigate to upload page (like create flow) instead of review
+      navigate('/upload');
     } finally {
       setIsSubmitting(false);
     }
@@ -188,19 +191,19 @@ const EditCase = () => {
               >
                 <ArrowLeft className="w-5 h-5 text-muted-foreground" />
               </button>
-              <div>
+            <div>
                 <h1 className="text-xl font-semibold text-foreground">Edit Case</h1>
                 <p className="text-sm text-muted-foreground">
-                  Update patient details. After saving, review and modify documents.
+                  Update patient details, then upload new documents.
                 </p>
               </div>
             </div>
 
             {/* Compact Grid Form - 2 columns on desktop */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              {/* Name Field */}
+              {/* Name Field - Optional */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Name</label>
+                <label className="text-sm font-medium text-foreground">Patient Name (Optional)</label>
                 <input
                   type="text"
                   value={name}

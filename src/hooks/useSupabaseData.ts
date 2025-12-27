@@ -437,6 +437,7 @@ export function useSupabaseData() {
   };
 
   // Modify an existing case - ONLY called on "Modify Case" click
+  // Edit flow now behaves like create: delete all old documents and replace with new ones
   const modifyCase = async (
     caseId: string,
     patientData: PatientData,
@@ -464,91 +465,103 @@ export function useSupabaseData() {
       await supabase
         .from('patients')
         .update({
-          anonymized_name: patientData.name,
+          anonymized_name: patientData.name || '',
           age: patientData.age ? parseInt(patientData.age, 10) : null,
           sex: patientData.sex || null,
         })
         .eq('case_id', caseId);
 
-      // 3. Handle documents: only update changed/new ones
-      const originalFileIds = originalFiles.map(f => f.id);
-      const newFiles = files.filter(f => !originalFileIds.includes(f.id));
-      const modifiedFiles = files.filter(f => editedFileIds.includes(f.id));
+      // 3. Delete all existing documents and their storage files
+      console.log('[modifyCase] Removing all existing documents for case:', caseId);
+      const { data: existingDocs } = await supabase
+        .from('documents')
+        .select('id, storage_path, page_count, file_type')
+        .eq('case_id', caseId);
 
-      // Upload and create new file records
-      for (const file of newFiles) {
-        console.log('[modifyCase] Creating new document:', file.name);
+      if (existingDocs && existingDocs.length > 0) {
+        // Collect all storage paths including multi-page PDF paths
+        const storagePaths: string[] = [];
+        for (const doc of existingDocs) {
+          if (doc.storage_path) {
+            const isPdf = doc.file_type === 'pdf';
+            const hasPagePattern = doc.storage_path.includes('_page_');
+            
+            if (isPdf && hasPagePattern && doc.page_count > 1) {
+              // Multi-page PDF - collect all page paths
+              const basePath = doc.storage_path.replace(/_page_\d+\.png$/, '');
+              for (let i = 0; i < doc.page_count; i++) {
+                storagePaths.push(`${basePath}_page_${i}.png`);
+              }
+            } else {
+              storagePaths.push(doc.storage_path);
+            }
+          }
+        }
+
+        // Delete from storage
+        if (storagePaths.length > 0) {
+          await supabase.storage.from('case-documents').remove(storagePaths);
+        }
+
+        // Delete document records (this will cascade to document_edit_tracking)
+        await supabase.from('documents').delete().eq('case_id', caseId);
+      }
+
+      // 4. Upload and create all new documents (like create flow)
+      console.log('[modifyCase] Creating', files.length, 'new documents');
+      
+      const uploadPromises = files.map(async (file) => {
         const uploadResult = await uploadFileToStorage(file, caseId);
         const isPdf = file.type === 'application/pdf';
+        const pageCount = isPdf ? (file.pdfPages?.length || file.anonymizedPages?.length || 1) : 1;
 
-        const { data: newDoc, error: docError } = await supabase
+        return {
+          case_id: caseId,
+          file_name: file.name,
+          file_type: isPdf ? 'pdf' : 'image',
+          file_category: file.fileCategory || null,
+          page_count: pageCount,
+          storage_path: uploadResult?.storagePath || null,
+          anonymized_file_url: uploadResult?.signedUrl || null,
+          digitized_text: file.extractedData || null,
+          is_anonymized: file.anonymizedVisited || false,
+          is_digitized: file.digitizedVisited || false,
+        };
+      });
+
+      const documentRecords = await Promise.all(uploadPromises);
+
+      if (documentRecords.length > 0) {
+        const { data: documents, error: documentsError } = await supabase
           .from('documents')
-          .insert({
-            case_id: caseId,
-            file_name: file.name,
-            file_type: isPdf ? 'pdf' : 'image',
-            file_category: file.fileCategory || null,
-            page_count: isPdf ? (file.pdfPages?.length || 1) : 1,
-            storage_path: uploadResult?.storagePath || null,
-            anonymized_file_url: uploadResult?.signedUrl || null,
-            digitized_text: file.extractedData || null,
-            is_anonymized: file.anonymizedVisited || false,
-            is_digitized: file.digitizedVisited || false,
-          })
-          .select()
-          .single();
+          .insert(documentRecords)
+          .select();
 
-        if (docError) {
-          console.error('[modifyCase] Document insert error:', docError);
-          throw docError;
+        if (documentsError) {
+          console.error('[modifyCase] Documents insert error:', documentsError);
+          throw documentsError;
         }
 
-        // Create edit tracking for new document
-        if (newDoc) {
-          await supabase
-            .from('document_edit_tracking')
-            .insert({
-              document_id: newDoc.id,
-              last_edited_stage: 'digitize',
-              requires_revisit: false,
-            });
+        // Create edit tracking records for new documents
+        if (documents && documents.length > 0) {
+          const trackingRecords = documents.map(doc => ({
+            document_id: doc.id,
+            last_edited_stage: 'digitize' as const,
+            requires_revisit: false,
+          }));
+
+          await supabase.from('document_edit_tracking').insert(trackingRecords);
         }
       }
 
-      // Update modified files
-      for (const file of modifiedFiles) {
-        console.log('[modifyCase] Updating modified document:', file.name);
-        const uploadResult = await uploadFileToStorage(file, caseId);
-
-        await supabase
-          .from('documents')
-          .update({
-            storage_path: uploadResult?.storagePath || null,
-            anonymized_file_url: uploadResult?.signedUrl || null,
-            digitized_text: file.extractedData || null,
-            is_anonymized: file.anonymizedVisited || false,
-            is_digitized: file.digitizedVisited || false,
-          })
-          .eq('id', file.id);
-
-        // Mark as requiring revisit in edit tracking
-        await supabase
-          .from('document_edit_tracking')
-          .update({
-            last_edited_stage: 'digitize',
-            requires_revisit: true,
-          })
-          .eq('document_id', file.id);
-      }
-
-      // 4. Create audit log
+      // 5. Create audit log
       await supabase
         .from('audit_logs')
         .insert({
           entity_type: 'case',
           entity_id: caseId,
           edited_by: user.id,
-          change_summary: `Case modified: ${newFiles.length} new document(s), ${modifiedFiles.length} updated document(s)`,
+          change_summary: `Case updated with ${files.length} new document(s)`,
         });
 
       // Refresh cases
@@ -766,6 +779,9 @@ export function useSupabaseData() {
               extractedData: doc.digitized_text || undefined,
               anonymizedVisited: doc.is_anonymized,
               digitizedVisited: doc.is_digitized,
+              createdAt: doc.created_at,
+              uploadedAt: doc.created_at,
+              lastModifiedAt: doc.last_modified_at,
             };
           })
         );
