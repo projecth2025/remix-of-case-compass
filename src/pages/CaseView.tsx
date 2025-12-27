@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Download } from 'lucide-react';
+import { ArrowLeft, Download, MoreVertical, Trash2 } from 'lucide-react';
 import Header from '@/components/Header';
 import TabBar from '@/components/TabBar';
 import ZoomablePreview from '@/components/ZoomablePreview';
@@ -14,6 +14,15 @@ import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { Expert, UploadedFile } from '@/lib/storage';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import ConfirmModal from '@/components/ConfirmModal';
+import { supabase } from '@/integrations/supabase/client';
 
 const tabs = [
   { id: 'profile', label: 'Profile' },
@@ -32,6 +41,7 @@ const tabs = [
 const CaseView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { loadCaseForEditing, loading } = useSupabaseData();
   const [activeTab, setActiveTab] = useState('profile');
   const [selectedReport, setSelectedReport] = useState<UploadedFile | null>(null);
@@ -40,7 +50,8 @@ const CaseView = () => {
   const [caseData, setCaseData] = useState<FullCase | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-
+  const [reportToDelete, setReportToDelete] = useState<UploadedFile | null>(null);
+  const [isDeletingReport, setIsDeletingReport] = useState(false);
   // Fetch experts for this case
   const { experts: caseExperts, mtbId, loading: expertsLoading } = useCaseExperts(id || '');
 
@@ -132,6 +143,68 @@ const CaseView = () => {
     toast.info('Patient presentation download coming soon');
   };
 
+  // Format upload date/time for display
+  const formatUploadDateTime = (file: UploadedFile) => {
+    const dateStr = file.uploadedAt || file.createdAt;
+    if (!dateStr) return 'Unknown date';
+    const date = new Date(dateStr);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  // Sort files by upload date descending (most recent first)
+  const getSortedFiles = () => {
+    if (!caseData) return [];
+    return [...caseData.files].sort((a, b) => {
+      const dateA = new Date(a.uploadedAt || a.createdAt || 0).getTime();
+      const dateB = new Date(b.uploadedAt || b.createdAt || 0).getTime();
+      return dateB - dateA; // Descending order
+    });
+  };
+
+  // Handle report deletion
+  const handleDeleteReport = async () => {
+    if (!reportToDelete || !caseData || !user) return;
+
+    setIsDeletingReport(true);
+    try {
+      // Delete from documents table
+      const { error: dbError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', reportToDelete.id);
+
+      if (dbError) {
+        console.error('Error deleting document from database:', dbError);
+        toast.error('Failed to delete report');
+        return;
+      }
+
+      // Update local state
+      const updatedFiles = caseData.files.filter(f => f.id !== reportToDelete.id);
+      setCaseData({ ...caseData, files: updatedFiles });
+
+      // Clear selected report if it was the deleted one
+      if (selectedReport?.id === reportToDelete.id) {
+        setSelectedReport(updatedFiles.length > 0 ? updatedFiles[0] : null);
+      }
+
+      toast.success('Report deleted successfully');
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      toast.error('Failed to delete report');
+    } finally {
+      setIsDeletingReport(false);
+      setReportToDelete(null);
+    }
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'profile':
@@ -180,24 +253,50 @@ const CaseView = () => {
         );
 
       case 'reports':
+        const sortedFiles = getSortedFiles();
         return (
           <div className="flex flex-col md:flex-row h-[calc(100vh-8rem)] animate-fade-in">
             {/* Reports List - narrow sidebar */}
-            <div className="w-full md:w-48 lg:w-56 border-b md:border-b-0 md:border-r border-border p-3 overflow-y-auto hide-scrollbar flex-shrink-0">
+            <div className="w-full md:w-56 lg:w-64 border-b md:border-b-0 md:border-r border-border p-3 overflow-y-auto hide-scrollbar flex-shrink-0">
               <h3 className="text-sm font-medium text-muted-foreground mb-3">Reports</h3>
-              {caseData.files.map((file, index) => (
-                <button
+              {sortedFiles.map((file) => (
+                <div
                   key={file.id}
-                  onClick={() => setSelectedReport(file)}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition-colors mb-2 text-sm ${
+                  className={`w-full text-left px-3 py-2 rounded-lg transition-colors mb-2 text-sm flex items-start justify-between gap-1 ${
                     selectedReport?.id === file.id
                       ? 'bg-primary/10 text-foreground border border-primary/30'
                       : 'hover:bg-muted text-foreground'
                   }`}
                 >
-                  Report {index + 1}
-                  <span className="block text-xs text-muted-foreground truncate">{file.name}</span>
-                </button>
+                  <button
+                    onClick={() => setSelectedReport(file)}
+                    className="flex-1 text-left min-w-0"
+                  >
+                    <span className="block font-medium truncate">{file.name}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {formatUploadDateTime(file)}
+                    </span>
+                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="p-1 rounded hover:bg-muted-foreground/10 flex-shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem
+                        onClick={() => setReportToDelete(file)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Report
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               ))}
             </div>
 
@@ -334,6 +433,17 @@ const CaseView = () => {
       <main className="w-full flex-1 overflow-hidden flex flex-col">
         {renderTabContent()}
       </main>
+
+      {/* Delete Report Confirmation Modal */}
+      <ConfirmModal
+        open={!!reportToDelete}
+        onOpenChange={(open) => !open && setReportToDelete(null)}
+        title="Delete Report?"
+        description={`Are you sure you want to delete "${reportToDelete?.name}"? This action cannot be undone.`}
+        confirmLabel={isDeletingReport ? 'Deleting...' : 'Delete'}
+        onConfirm={handleDeleteReport}
+        destructive
+      />
     </div>
   );
 };
