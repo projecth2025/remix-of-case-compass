@@ -16,6 +16,7 @@ import type { PatientData, UploadedFile } from '@/lib/storage';
 interface AppContextType {
   // Current workflow state
   currentPatient: PatientData | null;
+  existingDocumentNames: string[]; // Names of documents already in DB (for edit mode)
   uploadedFiles: UploadedFile[];
   isEditMode: boolean;
   editingCaseId: string | null;
@@ -24,7 +25,9 @@ interface AppContextType {
 
   // Actions for case creation workflow
   setCurrentPatient: (patient: PatientData) => void;
-  addUploadedFile: (file: UploadedFile) => void;
+  setExistingDocumentNames: (names: string[]) => void;
+  addUploadedFile: (file: UploadedFile) => boolean; // Returns false if duplicate name
+  isFileNameDuplicate: (name: string) => boolean;
   removeUploadedFile: (id: string) => void;
   updateFileCategory: (id: string, category: string) => void;
   updateFileName: (id: string, name: string) => void;
@@ -62,6 +65,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [editingCaseId, setEditingCaseId] = useState<string | null>(null);
   const [originalFiles, setOriginalFiles] = useState<UploadedFile[]>([]);
   const [editedFileIds, setEditedFileIds] = useState<string[]>([]);
+  const [existingDocumentNames, setExistingDocumentNames] = useState<string[]>([]);
 
   const setCurrentPatient = (patient: PatientData) => {
     // Always reset to create mode when called from Home
@@ -71,9 +75,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setUploadedFiles([]);
     setEditedFileIds([]);
     setOriginalFiles([]);
+    setExistingDocumentNames([]);
   };
 
-  const addUploadedFile = (file: UploadedFile) => {
+  // Check if a file name already exists in uploaded files or existing documents
+  const isFileNameDuplicate = (name: string): boolean => {
+    const normalizedName = name.toLowerCase().trim();
+    // Check against currently uploaded files
+    const inUploadedFiles = uploadedFiles.some(f => f.name.toLowerCase().trim() === normalizedName);
+    // Check against existing documents in DB (for edit mode)
+    const inExistingDocs = existingDocumentNames.some(n => n.toLowerCase().trim() === normalizedName);
+    return inUploadedFiles || inExistingDocs;
+  };
+
+  const addUploadedFile = (file: UploadedFile): boolean => {
+    // Check for duplicate name
+    if (isFileNameDuplicate(file.name)) {
+      return false; // Duplicate, don't add
+    }
+    
     const now = new Date().toISOString();
     const fileWithDefaults: UploadedFile = {
       ...file,
@@ -86,6 +106,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       dirty: false,
     };
     setUploadedFiles(prev => [...prev, fileWithDefaults]);
+    return true; // Successfully added
   };
 
   const removeUploadedFile = (id: string) => {
@@ -156,6 +177,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setUploadedFiles([]);
     setEditedFileIds([]);
     setOriginalFiles([]);
+    // Note: Don't clear existingDocumentNames here - they're from DB
   };
 
   const markFileAsEdited = (fileId: string) => {
@@ -258,6 +280,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setEditingCaseId(null);
     setOriginalFiles([]);
     setEditedFileIds([]);
+    setExistingDocumentNames([]);
   };
 
   return (
@@ -269,8 +292,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         editingCaseId,
         originalFiles,
         editedFileIds,
+        existingDocumentNames,
         setCurrentPatient,
+        setExistingDocumentNames,
         addUploadedFile,
+        isFileNameDuplicate,
         removeUploadedFile,
         updateFileCategory,
         updateFileName,

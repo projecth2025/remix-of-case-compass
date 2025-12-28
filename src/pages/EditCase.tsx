@@ -17,7 +17,7 @@ const EditCase = () => {
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
   
-  const { setupEditMode } = useApp();
+  const { setupEditMode, setExistingDocumentNames } = useApp();
   const { loadCaseForEditing, checkCaseNameExists } = useSupabaseData();
   
   // Form state
@@ -27,6 +27,7 @@ const EditCase = () => {
   const [cancerType, setCancerType] = useState('');
   const [caseName, setCaseName] = useState('');
   const [originalCaseName, setOriginalCaseName] = useState('');
+  const [existingDocNames, setExistingDocNames] = useState<string[]>([]);
   
   // Store loaded case data for setting up edit mode on submit
   const [loadedCase, setLoadedCase] = useState<FullCase | null>(null);
@@ -66,6 +67,10 @@ const EditCase = () => {
       setCancerType(caseData.patient.cancerType || '');
       setCaseName(caseData.caseName || '');
       setOriginalCaseName(caseData.caseName || '');
+      
+      // Store existing document names to prevent duplicates during edit
+      const docNames = caseData.files.map(doc => doc.name);
+      setExistingDocNames(docNames);
       
       setIsLoading(false);
     } catch (error) {
@@ -117,6 +122,9 @@ const EditCase = () => {
       
       // Pass empty array for files - edit flow starts fresh like create
       setupEditMode(caseId, updatedPatient, []);
+      
+      // Set existing document names to prevent duplicates
+      setExistingDocumentNames(existingDocNames);
       
       // Navigate to upload page (like create flow) instead of review
       navigate('/upload');
