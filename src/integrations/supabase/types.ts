@@ -16,7 +16,6 @@ export type Database = {
     Tables: {
       audit_logs: {
         Row: {
-          change_details: Json | null
           change_summary: string
           created_at: string
           edited_by: string
@@ -25,7 +24,6 @@ export type Database = {
           id: string
         }
         Insert: {
-          change_details?: Json | null
           change_summary: string
           created_at?: string
           edited_by: string
@@ -34,7 +32,6 @@ export type Database = {
           id?: string
         }
         Update: {
-          change_details?: Json | null
           change_summary?: string
           created_at?: string
           edited_by?: string
@@ -48,7 +45,6 @@ export type Database = {
         Row: {
           cancer_type: string | null
           case_name: string
-          clinical_summary: string | null
           created_at: string
           created_by: string
           id: string
@@ -58,7 +54,6 @@ export type Database = {
         Insert: {
           cancer_type?: string | null
           case_name: string
-          clinical_summary?: string | null
           created_at?: string
           created_by: string
           id?: string
@@ -68,7 +63,6 @@ export type Database = {
         Update: {
           cancer_type?: string | null
           case_name?: string
-          clinical_summary?: string | null
           created_at?: string
           created_by?: string
           id?: string
@@ -83,7 +77,6 @@ export type Database = {
           document_id: string
           id: string
           last_edited_stage: string
-          last_verified_at: string | null
           requires_revisit: boolean
           updated_at: string
         }
@@ -91,8 +84,7 @@ export type Database = {
           created_at?: string
           document_id: string
           id?: string
-          last_edited_stage?: string
-          last_verified_at?: string | null
+          last_edited_stage: string
           requires_revisit?: boolean
           updated_at?: string
         }
@@ -101,7 +93,6 @@ export type Database = {
           document_id?: string
           id?: string
           last_edited_stage?: string
-          last_verified_at?: string | null
           requires_revisit?: boolean
           updated_at?: string
         }
@@ -138,7 +129,7 @@ export type Database = {
           digitized_text?: Json | null
           file_category?: string | null
           file_name: string
-          file_type?: string
+          file_type: string
           id?: string
           is_anonymized?: boolean
           is_digitized?: boolean
@@ -206,13 +197,6 @@ export type Database = {
             columns: ["mtb_id"]
             isOneToOne: false
             referencedRelation: "mtbs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "group_chat_reads_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -345,7 +329,6 @@ export type Database = {
           id: string
           meeting_id: string
           response: string
-          updated_at: string
           user_id: string
         }
         Insert: {
@@ -354,7 +337,6 @@ export type Database = {
           id?: string
           meeting_id: string
           response?: string
-          updated_at?: string
           user_id: string
         }
         Update: {
@@ -363,7 +345,6 @@ export type Database = {
           id?: string
           meeting_id?: string
           response?: string
-          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -391,7 +372,6 @@ export type Database = {
           started_at: string | null
           status: string
           title: string | null
-          updated_at: string
         }
         Insert: {
           created_at?: string
@@ -407,7 +387,6 @@ export type Database = {
           started_at?: string | null
           status?: string
           title?: string | null
-          updated_at?: string
         }
         Update: {
           created_at?: string
@@ -423,7 +402,6 @@ export type Database = {
           started_at?: string | null
           status?: string
           title?: string | null
-          updated_at?: string
         }
         Relationships: [
           {
@@ -539,7 +517,7 @@ export type Database = {
       patients: {
         Row: {
           age: number | null
-          anonymized_name: string
+          anonymized_name: string | null
           case_id: string
           created_at: string
           id: string
@@ -548,7 +526,7 @@ export type Database = {
         }
         Insert: {
           age?: number | null
-          anonymized_name: string
+          anonymized_name?: string | null
           case_id: string
           created_at?: string
           id?: string
@@ -557,7 +535,7 @@ export type Database = {
         }
         Update: {
           age?: number | null
-          anonymized_name?: string
+          anonymized_name?: string | null
           case_id?: string
           created_at?: string
           id?: string
@@ -610,20 +588,6 @@ export type Database = {
             referencedRelation: "cases"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "private_messages_recipient_id_fkey"
-            columns: ["recipient_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "private_messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       profiles: {
@@ -662,54 +626,15 @@ export type Database = {
         }
         Relationships: []
       }
-      user_roles: {
-        Row: {
-          created_at: string
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_mtb_member: {
-        Args: { _mtb_id: string; _user_id: string }
-        Returns: boolean
-      }
-      is_mtb_member_for_case_path: {
-        Args: { file_path: string }
-        Returns: boolean
-      }
-      is_mtb_owner: {
-        Args: { _mtb_id: string; _user_id: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      app_role: "admin" | "doctor" | "expert"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -836,8 +761,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      app_role: ["admin", "doctor", "expert"],
-    },
+    Enums: {},
   },
 } as const
