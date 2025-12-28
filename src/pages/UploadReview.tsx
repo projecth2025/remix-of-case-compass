@@ -13,14 +13,34 @@ import { toast } from 'sonner';
  */
 const UploadReview = () => {
   const navigate = useNavigate();
-  const { currentPatient, uploadedFiles, addUploadedFile, removeUploadedFile, updateFileCategory, updateFileExtractedData, clearUploadedFiles, updateFileName } = useApp();
+  const { currentPatient, uploadedFiles, addUploadedFile, removeUploadedFile, updateFileCategory, updateFileExtractedData, clearUploadedFiles, updateFileName, isFileNameDuplicate } = useApp();
   const [showConfirmRemove, setShowConfirmRemove] = useState(false);
   const [editingFileId, setEditingFileId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFilesAdded = (files: UploadedFile[]) => {
-    files.forEach(file => addUploadedFile(file));
-    toast.success(`${files.length} file(s) added`);
+    const addedFiles: string[] = [];
+    const duplicateFiles: string[] = [];
+    
+    files.forEach(file => {
+      if (isFileNameDuplicate(file.name)) {
+        duplicateFiles.push(file.name);
+      } else {
+        const added = addUploadedFile(file);
+        if (added) {
+          addedFiles.push(file.name);
+        } else {
+          duplicateFiles.push(file.name);
+        }
+      }
+    });
+    
+    if (duplicateFiles.length > 0) {
+      toast.error(`Duplicate file name(s): ${duplicateFiles.join(', ')}`);
+    }
+    if (addedFiles.length > 0) {
+      toast.success(`${addedFiles.length} file(s) added`);
+    }
   };
 
   const handleUploadClick = () => {
@@ -32,9 +52,17 @@ const UploadReview = () => {
     if (!files) return;
 
     const acceptedTypes = ['application/pdf', 'text/plain', 'image/png', 'image/jpeg', 'image/jpg'];
+    const addedFiles: string[] = [];
+    const duplicateFiles: string[] = [];
 
     Array.from(files).forEach(file => {
       if (acceptedTypes.includes(file.type)) {
+        // Check for duplicate before reading file
+        if (isFileNameDuplicate(file.name)) {
+          duplicateFiles.push(file.name);
+          return;
+        }
+        
         const reader = new FileReader();
         reader.onload = () => {
           const uploadedFile: UploadedFile = {
@@ -45,11 +73,18 @@ const UploadReview = () => {
             dataURL: reader.result as string,
             fileCategory: 'Clinical Notes',
           };
-          addUploadedFile(uploadedFile);
+          const added = addUploadedFile(uploadedFile);
+          if (added) {
+            addedFiles.push(file.name);
+          }
         };
         reader.readAsDataURL(file);
       }
     });
+
+    if (duplicateFiles.length > 0) {
+      toast.error(`Duplicate file name(s): ${duplicateFiles.join(', ')}`);
+    }
 
     e.target.value = '';
   };

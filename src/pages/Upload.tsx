@@ -9,15 +9,35 @@ import { toast } from 'sonner';
 
 const Upload = () => {
   const navigate = useNavigate();
-  const { currentPatient, addUploadedFile } = useApp();
+  const { currentPatient, addUploadedFile, isFileNameDuplicate } = useApp();
 
   // Note: Files are already cleared in setCurrentPatient when starting a new case
   // No need to clear here - it could interfere with the state
 
   const handleFilesAdded = (files: UploadedFile[]) => {
-    files.forEach(file => addUploadedFile(file));
-    toast.success(`${files.length} file(s) added`);
-    navigate('/upload/review');
+    const addedFiles: string[] = [];
+    const duplicateFiles: string[] = [];
+    
+    files.forEach(file => {
+      if (isFileNameDuplicate(file.name)) {
+        duplicateFiles.push(file.name);
+      } else {
+        const added = addUploadedFile(file);
+        if (added) {
+          addedFiles.push(file.name);
+        } else {
+          duplicateFiles.push(file.name);
+        }
+      }
+    });
+    
+    if (duplicateFiles.length > 0) {
+      toast.error(`Duplicate file name(s): ${duplicateFiles.join(', ')}`);
+    }
+    if (addedFiles.length > 0) {
+      toast.success(`${addedFiles.length} file(s) added`);
+      navigate('/upload/review');
+    }
   };
 
   const handleClose = () => {
